@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,7 +28,7 @@
 #import "Isgl3dLog.h"
 
 @interface Isgl3dTween (PrivateMethods)
-- (void) handleParameters:(NSDictionary *)parameters;
+- (void)handleParameters:(NSDictionary *)parameters;
 - (float) tweenFunc:(float)progression;
 - (float) easeOutBounce:(float)progression;
 - (float) easeOutThrow:(float)progression;
@@ -42,7 +42,7 @@
 	return [super init];
 }
 
-- (id) initWithObject:(id)object forParameters:(NSDictionary *)parameters {
+- (id)initWithObject:(id)object forParameters:(NSDictionary *)parameters {
 	if ((self = [super init])) {
 		_object = object;
 		_startTime = [[NSDate alloc] init];
@@ -56,7 +56,7 @@
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	
 	[_initialValues release];
 	[_finalValues release];
@@ -72,12 +72,12 @@
 }
 
 
-- (void) handleParameters:(NSDictionary *)parameters {
+- (void)handleParameters:(NSDictionary *)parameters {
 	for (NSString * key in parameters) {
 		if ([key isEqualToString:TWEEN_DURATION]) {
 			// Verify that time is a NSNumber
 			if (![[parameters objectForKey:key] isKindOfClass:[NSNumber class]]) {
-				Isgl3dLog(Error, @"Tweener: value passed for time property must be NSNumber");
+				Isgl3dClassDebugLog(Isgl3dLogLevelError, @"value passed for time property must be NSNumber");
 				
 			} else {
 				_duration = [[parameters objectForKey:key] floatValue];
@@ -86,7 +86,7 @@
 		} else if ([key isEqualToString:TWEEN_TRANSITION]) {
 			// Verify that transistion is a NSString
 			if (![[parameters objectForKey:key] isKindOfClass:[NSString class]]) {
-				Isgl3dLog(Error, @"Tweener: value passed for transition property must be NSString");
+				Isgl3dClassDebugLog(Isgl3dLogLevelError, @"value passed for transition property must be NSString");
 				
 			} else {
 				_transition = [[parameters objectForKey:key] retain];
@@ -98,7 +98,7 @@
 		} else if ([key isEqualToString:TWEEN_ON_COMPLETE_SELECTOR]) {
 			// Verify that transistion is a NSString
 			if (![[parameters objectForKey:key] isKindOfClass:[NSString class]]) {
-				Isgl3dLog(Error, @"Tweener: value passed for onCompleteSelector property must be NSString");
+				Isgl3dClassDebugLog(Isgl3dLogLevelError, @"value passed for onCompleteSelector property must be NSString");
 				
 			} else {
 				_onCompleteSelector = NSSelectorFromString([parameters objectForKey:key]);
@@ -109,7 +109,7 @@
 				
 				// Verify that property value is an NSNumber
 				if (![[_object valueForKey:key] isKindOfClass:[NSNumber class]]) {
-					Isgl3dLog(Error, @"Tweener: propety %@ cannot be used for tween. Only NSNumber properties can be used", key);
+					Isgl3dClassDebugLog(Isgl3dLogLevelError, @"property %@ cannot be used for tween. Only NSNumber properties can be used", key);
 					
 				} else {
 					NSNumber * initialValue = [_object valueForKey:key];
@@ -121,7 +121,7 @@
 			
 			} 
 			@catch (NSException * e) {
-				Isgl3dLog(Error, @"Tweener: unknown property: %@ for object of type %s", key, object_getClassName(_object));
+				Isgl3dClassDebugLog(Isgl3dLogLevelError, @"unknown property: %@ for object of type %s", key, object_getClassName(_object));
 			}
 			
 		}
@@ -137,7 +137,7 @@
 	return [_finalValues allKeys];
 }
 
-- (void) removeProperty:(NSString *)property {
+- (void)removeProperty:(NSString *)property {
 	[_finalValues removeObjectForKey:property];
 	[_initialValues removeObjectForKey:property];
 }
@@ -147,7 +147,7 @@
 	
 }
 
-- (void) update:(NSDate *)currentTime {
+- (void)update:(NSDate *)currentTime {
 	NSTimeInterval timeInterval = [currentTime timeIntervalSinceDate:_startTime];
 	
 	// Check to see if this is the last tween
@@ -176,13 +176,13 @@
 	
 }
 
-- (void) onComplete {
+- (void)onComplete {
 	
 	if (_onCompleteTarget != nil) {
 		if ([_onCompleteTarget respondsToSelector:_onCompleteSelector]) {
 			[_onCompleteTarget performSelector:_onCompleteSelector withObject:_object];
 		} else {
-			Isgl3dLog(Error, @"Tween: Cannot perform onComplete as %s does not respond to %@", object_getClassName(_onCompleteTarget), NSStringFromSelector(_onCompleteSelector));
+			Isgl3dClassDebugLog(Isgl3dLogLevelError, @"Cannot perform onComplete as %s does not respond to %@", object_getClassName(_onCompleteTarget), NSStringFromSelector(_onCompleteSelector));
 		}
 	} 
 }

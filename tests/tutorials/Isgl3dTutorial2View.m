@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,14 +26,41 @@
 #import "Isgl3dTutorial2View.h"
 #define LIGHT_RADIUS 4
 
+
+@interface Isgl3dTutorial2View ()
+@end
+
+
+#pragma mark -
 @implementation Isgl3dTutorial2View
 
-- (id) init {
++ (id<Isgl3dCamera>)createDefaultSceneCameraForViewport:(CGRect)viewport {
+    Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"creating default camera with perspective projection. Viewport size = %@", NSStringFromCGSize(viewport.size));
+    
+    CGSize viewSize = viewport.size;
+    float fovyRadians = Isgl3dMathDegreesToRadians(45.0f);
+    Isgl3dPerspectiveProjection *perspectiveLens = [[Isgl3dPerspectiveProjection alloc] initFromViewSize:viewSize fovyRadians:fovyRadians nearZ:1.0f farZ:10000.0f];
+    
+    Isgl3dVector3 cameraPosition = Isgl3dVector3Make(0.0f, 0.0f, 10.0f);
+    Isgl3dVector3 cameraLookAt = Isgl3dVector3Make(0.0f, 0.0f, 0.0f);
+    Isgl3dVector3 cameraLookUp = Isgl3dVector3Make(0.0f, 1.0f, 0.0f);
+    Isgl3dLookAtCamera *standardCamera = [[Isgl3dLookAtCamera alloc] initWithLens:perspectiveLens
+                                                                             eyeX:cameraPosition.x eyeY:cameraPosition.y eyeZ:cameraPosition.z
+                                                                          centerX:cameraLookAt.x centerY:cameraLookAt.y centerZ:cameraLookAt.z
+                                                                              upX:cameraLookUp.x upY:cameraLookUp.y upZ:cameraLookUp.z];
+    [perspectiveLens release];
+    return [standardCamera autorelease];
+}
+
+
+#pragma mark -
+- (id)init {
 	
-	if ((self = [super init])) {
+	if (self = [super init]) {
 
 		// Translate the camera.
-		self.camera.position = iv3(2, 8, 10);
+        Isgl3dLookAtCamera *standardCamera = (Isgl3dLookAtCamera *)self.defaultCamera;
+		standardCamera.eyePosition = Isgl3dVector3Make(2.0f, 8.0f, 10.0f);
 
 		// Create a white color material (with grey ambient color)
 		Isgl3dColorMaterial * colorMaterial = [Isgl3dColorMaterial materialWithHexColors:@"444444" diffuse:@"FFFFFF" specular:@"FFFFFF" shininess:0.7];
@@ -70,18 +97,18 @@
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	[super dealloc];
 }
 
-- (void) tick:(float)dt {
+- (void)tick:(float)dt {
 	// Rotate the torus
 	_torusNode.rotationZ += 1;
 	
 	// Move the lights
-	_redLight.position = iv3(LIGHT_RADIUS * sin(_lightAngle * M_PI / 30), LIGHT_RADIUS * cos(_lightAngle * M_PI / 30), 0);
-	_greenLight.position = iv3(LIGHT_RADIUS * -cos(_lightAngle * M_PI / 60), LIGHT_RADIUS * sin(_lightAngle * M_PI / 60), LIGHT_RADIUS * cos(_lightAngle * M_PI / 60));
-	_blueLight.position = iv3(LIGHT_RADIUS * sin(_lightAngle * M_PI / 45), LIGHT_RADIUS * cos(_lightAngle * M_PI / 45), LIGHT_RADIUS * sin(_lightAngle * M_PI / 45));
+	_redLight.position = Isgl3dVector3Make(LIGHT_RADIUS * sin(_lightAngle * M_PI / 30), LIGHT_RADIUS * cos(_lightAngle * M_PI / 30), 0);
+	_greenLight.position = Isgl3dVector3Make(LIGHT_RADIUS * -cos(_lightAngle * M_PI / 60), LIGHT_RADIUS * sin(_lightAngle * M_PI / 60), LIGHT_RADIUS * cos(_lightAngle * M_PI / 60));
+	_blueLight.position = Isgl3dVector3Make(LIGHT_RADIUS * sin(_lightAngle * M_PI / 45), LIGHT_RADIUS * cos(_lightAngle * M_PI / 45), LIGHT_RADIUS * sin(_lightAngle * M_PI / 45));
 
 	// Update the light angle
 	_lightAngle = _lightAngle + 0.5;
@@ -97,12 +124,10 @@
  */
 @implementation AppDelegate
 
-- (void) createViews {
-	// Set the device orientation
-	[Isgl3dDirector sharedInstance].deviceOrientation = Isgl3dOrientationLandscapeLeft;
-
+- (void)createViews {
 	// Create view and add to Isgl3dDirector
-	Isgl3dView * view = [Isgl3dTutorial2View view];
+	Isgl3dView *view = [Isgl3dTutorial2View view];
+    view.displayFPS = YES;
 	[[Isgl3dDirector sharedInstance] addView:view];
 }
 

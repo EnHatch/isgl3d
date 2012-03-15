@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,8 +29,9 @@
 
 @synthesize textureEnabled = _textureEnabled;
 @synthesize lightingEnabled = _lightingEnabled;
+@synthesize normalMappingEnabled = _normalMappingEnabled;
 
-- (id) init {
+- (id)init {
 	
 	if ((self = [super init])) {
 		[self reset];
@@ -40,19 +41,21 @@
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 
 	[super dealloc];
 }
 
-- (void) copyFrom:(Isgl3dShaderState *)state {
+- (void)copyFrom:(Isgl3dShaderState *)state {
 	_textureEnabled = state.textureEnabled;
 	_lightingEnabled = state.lightingEnabled;
+	_normalMappingEnabled = state.normalMappingEnabled;
 }
 
-- (void) reset {
+- (void)reset {
 	_textureEnabled = false;
 	_lightingEnabled = false;
+    _normalMappingEnabled = false;
 }
 
 

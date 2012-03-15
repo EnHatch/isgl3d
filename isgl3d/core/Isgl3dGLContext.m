@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,6 +24,24 @@
  */
 
 #import "Isgl3dGLContext.h"
+#ifdef GL_ES_VERSION_2_0
+#import <OpenGLES/ES2/gl.h>
+#else
+#import <OpenGLES/ES1/gl.h>
+#endif
+
+
+static NSArray *_glExtensionsNames = nil;
+
+BOOL CheckForGLExtension(NSString *searchName) {
+    if (_glExtensionsNames == nil) {
+        const char *extensionsCStr = (const char *)glGetString(GL_EXTENSIONS);
+        NSString *extensionsString = [NSString stringWithCString:extensionsCStr encoding: NSASCIIStringEncoding];
+        _glExtensionsNames = [[extensionsString componentsSeparatedByString:@" "] retain];
+    }
+    return [_glExtensionsNames containsObject:searchName];
+}
+
 
 @implementation Isgl3dGLContext
 
@@ -34,7 +52,12 @@
 @synthesize msaaEnabled=_msaaEnabled;
 
 
-- (id) init {
++ (BOOL)openGLExtensionSupported:(NSString *)extensionName {
+    return CheckForGLExtension(extensionName);
+}
+
+
+- (id)init {
 	
 	if ((self = [super init])) {
 		_msaaAvailable = NO;
@@ -57,10 +80,10 @@
 	return true;
 }
 
-- (void) prepareRender {
+- (void)prepareRender {
 }
 
-- (void) finalizeRender {
+- (void)finalizeRender {
 }
 
 - (NSString *) getPixelString:(unsigned int)x y:(unsigned int)y {

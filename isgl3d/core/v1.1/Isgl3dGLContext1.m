@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -32,18 +32,18 @@
 
 
 @interface Isgl3dGLContext1 ()
-- (void) checkGLExtensions;
-- (BOOL) createBuffers:(CAEAGLLayer *)eaglLayer;
-- (BOOL) createExtensionBuffers;
-- (void) releaseBuffers;
-- (void) releaseExtensionBuffers;
+- (void)checkGLExtensions;
+- (BOOL)createBuffers:(CAEAGLLayer *)eaglLayer;
+- (BOOL)createExtensionBuffers;
+- (void)releaseBuffers;
+- (void)releaseExtensionBuffers;
 @end
 
 
 @implementation Isgl3dGLContext1
 
 // Create an ES 1.1 context
-- (id) initWithLayer:(CAEAGLLayer *) layer {
+- (id)initWithLayer:(CAEAGLLayer *) layer {
 	
 	if ((self = [super init])) {
 
@@ -80,7 +80,7 @@
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 
 	// Release all buffers
 	[self releaseBuffers];
@@ -101,7 +101,7 @@
 }
 
 
-- (void) checkGLExtensions {
+- (void)checkGLExtensions {
 	// Check and activate additional OpenGL extensions
 	//const GLubyte *str = glGetString(GL_EXTENSIONS);
 	//NSString *featuresStr = [NSString stringWithCString:(const char *)str encoding:NSASCIIStringEncoding];
@@ -168,7 +168,7 @@
 		glRenderbufferStorageOES(GL_RENDERBUFFER_OES, GL_DEPTH_COMPONENT16_OES, _backingWidth, _backingHeight);
 		glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_DEPTH_ATTACHMENT_OES, GL_RENDERBUFFER_OES, _depthRenderBuffer);
 		if (glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES) != GL_FRAMEBUFFER_COMPLETE_OES) {
-			Isgl3dLog(Error, @"Isgl3dGLContext1 : No depth buffer available on this device: failed to make complete framebuffer object %x", glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES));
+			Isgl3dClassDebugLog(Isgl3dLogLevelError, @"No depth buffer available on this device: failed to make complete framebuffer object %x", glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES));
 			return succeeded;
 		}
 
@@ -178,7 +178,7 @@
 		glRenderbufferStorageOES(GL_RENDERBUFFER_OES, GL_STENCIL_INDEX8_OES, _backingWidth, _backingHeight);
 		glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_STENCIL_ATTACHMENT_OES, GL_RENDERBUFFER_OES, _stencilRenderBuffer);
 		if (glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES) != GL_FRAMEBUFFER_COMPLETE_OES) {
-			Isgl3dLog(Info, @"Isgl3dGLContext1 : Depth buffer in use, no stencil buffer on this device: some iSGL3D functionalities are not available.");
+			Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"Depth buffer in use, no stencil buffer on this device: some iSGL3D functionalities are not available.");
 			
 			glDeleteRenderbuffersOES(1, &_stencilRenderBuffer);
 			_stencilRenderBuffer = 0;
@@ -186,12 +186,12 @@
 			succeeded = YES;
 			
 		} else {
-			Isgl3dLog(Info, @"Isgl3dGLContext1 : Separate stencil and depth buffers in use: all iSGL3D functionalities available.");
+			Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"Separate stencil and depth buffers in use: all iSGL3D functionalities available.");
 			succeeded = YES;
 		}
 	}
 	else {
-		Isgl3dLog(Info, @"Isgl3dGLContext1 : Packed stencil and depth buffer in use: all iSGL3D functionalities available.");
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"Packed stencil and depth buffer in use: all iSGL3D functionalities available.");
 		succeeded = YES;
 	}
 
@@ -208,7 +208,7 @@
 	
 	// MSAA support
     if (!_msaaAvailable) {
-		Isgl3dLog(Info, @"Isgl3dGLContext1 : MSAA unavailable for device.");
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"MSAA unavailable for device.");
         return succeeded;
     }
 	
@@ -217,10 +217,10 @@
 		// Get the maximum number of MSAA samples
 		glGetIntegerv(GL_MAX_SAMPLES_APPLE, &_msaaSamples);
 		if (_msaaSamples <= 0) {
-			Isgl3dLog(Info, @"Isgl3dGLContext1 : MSAA unavailable for device.");
+			Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"MSAA unavailable for device.");
 			return succeeded;
 		} else {
-			Isgl3dLog(Info, @"Isgl3dGLContext1 : MSAA available for device, using %i samples.", _msaaSamples);
+			Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"MSAA available for device, using %i samples.", _msaaSamples);
 		}
 		
 		glGenFramebuffersOES(1, &_msaaFrameBuffer);
@@ -252,7 +252,7 @@
 			glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER_OES, _msaaSamples, GL_DEPTH_COMPONENT16_OES, _backingWidth, _backingHeight);
 			glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_DEPTH_ATTACHMENT_OES, GL_RENDERBUFFER_OES, _msaaDepthRenderBuffer);
 			if (glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES) != GL_FRAMEBUFFER_COMPLETE_OES) {
-				Isgl3dLog(Error, @"Isgl3dGLContext2 : No MSAA depth buffer available on this device: failed to make complete framebuffer object %x", glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES));
+				Isgl3dClassDebugLog(Isgl3dLogLevelError, @"No MSAA depth buffer available on this device: failed to make complete framebuffer object %x", glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES));
 				return succeeded;
 			}
 			
@@ -262,22 +262,22 @@
 			glRenderbufferStorageMultisampleAPPLE(GL_RENDERBUFFER_OES, _msaaSamples, GL_STENCIL_INDEX8_OES, _backingWidth, _backingHeight);
 			glFramebufferRenderbufferOES(GL_FRAMEBUFFER_OES, GL_STENCIL_ATTACHMENT_OES, GL_RENDERBUFFER_OES, _msaaStencilRenderBuffer);
 			if (glCheckFramebufferStatusOES(GL_FRAMEBUFFER_OES) != GL_FRAMEBUFFER_COMPLETE_OES) {
-				Isgl3dLog(Info, @"Isgl3dGLContext2 : MSAA Depth buffer in use, no MSAA stencil buffer on this device: some iSGL3D functionalities are not available.");
+				Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"MSAA Depth buffer in use, no MSAA stencil buffer on this device: some iSGL3D functionalities are not available.");
 				
 				glDeleteRenderbuffersOES(1, &_msaaStencilRenderBuffer);
 				_msaaStencilRenderBuffer = 0;
 				_stencilBufferAvailable = NO;
 				
 			} else {
-				Isgl3dLog(Info, @"Isgl3dGLContext1 : Separate MSAA stencil and depth buffers in use: all iSGL3D functionalities available.");
+				Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"Separate MSAA stencil and depth buffers in use: all iSGL3D functionalities available.");
 				succeeded = YES;
 			}
 		} else {
-			Isgl3dLog(Info, @"Isgl3dGLContext1 : Complete MSAA framebuffer object created: all iSGL3D functionalities available.");
+			Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"Complete MSAA framebuffer object created: all iSGL3D functionalities available.");
 			succeeded = YES;
 		}
 	} else {
-		Isgl3dLog(Info, @"Isgl3dGLContext1 : MSAA unavailable for device.");
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"MSAA unavailable for device.");
 		succeeded  = YES;
 	}	
 	return succeeded;
@@ -356,7 +356,7 @@
 	return [_currentRenderer autorelease];
 }
 
-- (void) prepareRender {
+- (void)prepareRender {
 	[super prepareRender];
 	
 	if(_msaaAvailable && _msaaEnabled){		
@@ -368,7 +368,7 @@
 	}
 }
 
-- (void) finalizeRender {
+- (void)finalizeRender {
 	[super finalizeRender];
 
 	if (_msaaAvailable && _msaaEnabled) {
@@ -399,7 +399,7 @@
 	// Get current width and height
 	glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_WIDTH_OES, &_backingWidth);
 	glGetRenderbufferParameterivOES(GL_RENDERBUFFER_OES, GL_RENDERBUFFER_HEIGHT_OES, &_backingHeight);
-	Isgl3dLog(Info, @"Isgl3dGLContext1 : Resizing OpenGL buffers to %ix%i", _backingWidth, _backingHeight);
+	Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"Resizing OpenGL buffers to %ix%i", _backingWidth, _backingHeight);
 
 	return YES;
 }
@@ -413,7 +413,7 @@
 	return pixelString;
 }
 
-- (void) setMsaaEnabled:(BOOL)value {
+- (void)setMsaaEnabled:(BOOL)value {
     if (!_msaaAvailable)
         return;
     
@@ -428,13 +428,13 @@
     }
 }
 
-- (void) switchToStandardBuffers
+- (void)switchToStandardBuffers
 {
 	glBindFramebufferOES(GL_FRAMEBUFFER_OES, _defaultFrameBuffer);
 	glBindRenderbufferOES(GL_RENDERBUFFER_OES, _colorRenderBuffer);
 }
 
-- (void) switchToMsaaBuffers
+- (void)switchToMsaaBuffers
 {
 	if (_msaaAvailable && _msaaEnabled) {
 		glBindFramebufferOES(GL_FRAMEBUFFER_OES, _msaaFrameBuffer);

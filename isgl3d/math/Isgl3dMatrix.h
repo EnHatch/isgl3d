@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,187 +26,8 @@
 #import <Foundation/Foundation.h>
 #import "Isgl3dMathTypes.h"
 #import "Isgl3dVector.h"
+#import "Isgl3dVector3.h"
 #import "Isgl3dQuaternion.h"
-
-/*
- * Use GLKit definitions for iOS >= 5.0 and if no strict ANSI compilation is set (C/C++ language dialect)
- * GLKit linkage required in this case
- */
-#if !(defined(__STRICT_ANSI__)) && (__IPHONE_OS_VERSION_MIN_REQUIRED >= __IPHONE_5_0)
-
-#import <GLKit/GLKMath.h>
-
-#pragma mark - GLKit compatible definitions
-#
-
-#define Isgl3dMatrix4Transpose GLKitMatrix4Transpose
-#define Isgl3dMatrix4Multiply GLKitMatrix4Multiply
-#define Isgl3dMatrix4Add GLKitMatrix4Add
-#define Isgl3dMatrix4Subtract GLKitMatrix4Subtract
-
-#else
-
-#pragma mark - GLKit corresponding matrix implementations
-#
-
-#include <stddef.h>
-#include <stdbool.h>
-#include <math.h>
-
-#if defined(__ARM_NEON__)
-#include <arm_neon.h>
-#endif
-
-static __inline__ Isgl3dMatrix4 Isgl3dMatrix4Transpose(Isgl3dMatrix4 matrix)
-{
-#if defined(__ARM_NEON__)
-    float32x4x4_t m = vld4q_f32(matrix.m);
-    return *(Isgl3dMatrix4 *)&m;
-#else
-    Isgl3dMatrix4 m = { matrix.m[0], matrix.m[4], matrix.m[8], matrix.m[12],
-        matrix.m[1], matrix.m[5], matrix.m[9], matrix.m[13],
-        matrix.m[2], matrix.m[6], matrix.m[10], matrix.m[14],
-        matrix.m[3], matrix.m[7], matrix.m[11], matrix.m[15] };
-    return m;
-#endif
-}
-
-static __inline__ Isgl3dMatrix4 Isgl3dMatrix4Multiply(Isgl3dMatrix4 matrixLeft, Isgl3dMatrix4 matrixRight)
-{
-#if defined(__ARM_NEON__)
-    float32x4x4_t iMatrixLeft = *(float32x4x4_t *)&matrixLeft;
-    float32x4x4_t iMatrixRight = *(float32x4x4_t *)&matrixRight;
-    float32x4x4_t m;
-    
-    m.val[0] = vmulq_n_f32(iMatrixLeft.val[0], vgetq_lane_f32(iMatrixRight.val[0], 0));
-    m.val[1] = vmulq_n_f32(iMatrixLeft.val[0], vgetq_lane_f32(iMatrixRight.val[1], 0));
-    m.val[2] = vmulq_n_f32(iMatrixLeft.val[0], vgetq_lane_f32(iMatrixRight.val[2], 0));
-    m.val[3] = vmulq_n_f32(iMatrixLeft.val[0], vgetq_lane_f32(iMatrixRight.val[3], 0));
-    
-    m.val[0] = vmlaq_n_f32(m.val[0], iMatrixLeft.val[1], vgetq_lane_f32(iMatrixRight.val[0], 1));
-    m.val[1] = vmlaq_n_f32(m.val[1], iMatrixLeft.val[1], vgetq_lane_f32(iMatrixRight.val[1], 1));
-    m.val[2] = vmlaq_n_f32(m.val[2], iMatrixLeft.val[1], vgetq_lane_f32(iMatrixRight.val[2], 1));
-    m.val[3] = vmlaq_n_f32(m.val[3], iMatrixLeft.val[1], vgetq_lane_f32(iMatrixRight.val[3], 1));
-    
-    m.val[0] = vmlaq_n_f32(m.val[0], iMatrixLeft.val[2], vgetq_lane_f32(iMatrixRight.val[0], 2));
-    m.val[1] = vmlaq_n_f32(m.val[1], iMatrixLeft.val[2], vgetq_lane_f32(iMatrixRight.val[1], 2));
-    m.val[2] = vmlaq_n_f32(m.val[2], iMatrixLeft.val[2], vgetq_lane_f32(iMatrixRight.val[2], 2));
-    m.val[3] = vmlaq_n_f32(m.val[3], iMatrixLeft.val[2], vgetq_lane_f32(iMatrixRight.val[3], 2));
-    
-    m.val[0] = vmlaq_n_f32(m.val[0], iMatrixLeft.val[3], vgetq_lane_f32(iMatrixRight.val[0], 3));
-    m.val[1] = vmlaq_n_f32(m.val[1], iMatrixLeft.val[3], vgetq_lane_f32(iMatrixRight.val[1], 3));
-    m.val[2] = vmlaq_n_f32(m.val[2], iMatrixLeft.val[3], vgetq_lane_f32(iMatrixRight.val[2], 3));
-    m.val[3] = vmlaq_n_f32(m.val[3], iMatrixLeft.val[3], vgetq_lane_f32(iMatrixRight.val[3], 3));
-    
-    return *(Isgl3dMatrix4 *)&m;
-#else
-    Isgl3dMatrix4 m;
-    
-    m.m[0]  = matrixLeft.m[0] * matrixRight.m[0]  + matrixLeft.m[4] * matrixRight.m[1]  + matrixLeft.m[8] * matrixRight.m[2]   + matrixLeft.m[12] * matrixRight.m[3];
-    m.m[4]  = matrixLeft.m[0] * matrixRight.m[4]  + matrixLeft.m[4] * matrixRight.m[5]  + matrixLeft.m[8] * matrixRight.m[6]   + matrixLeft.m[12] * matrixRight.m[7];
-    m.m[8]  = matrixLeft.m[0] * matrixRight.m[8]  + matrixLeft.m[4] * matrixRight.m[9]  + matrixLeft.m[8] * matrixRight.m[10]  + matrixLeft.m[12] * matrixRight.m[11];
-    m.m[12] = matrixLeft.m[0] * matrixRight.m[12] + matrixLeft.m[4] * matrixRight.m[13] + matrixLeft.m[8] * matrixRight.m[14]  + matrixLeft.m[12] * matrixRight.m[15];
-    
-    m.m[1]  = matrixLeft.m[1] * matrixRight.m[0]  + matrixLeft.m[5] * matrixRight.m[1]  + matrixLeft.m[9] * matrixRight.m[2]   + matrixLeft.m[13] * matrixRight.m[3];
-    m.m[5]  = matrixLeft.m[1] * matrixRight.m[4]  + matrixLeft.m[5] * matrixRight.m[5]  + matrixLeft.m[9] * matrixRight.m[6]   + matrixLeft.m[13] * matrixRight.m[7];
-    m.m[9]  = matrixLeft.m[1] * matrixRight.m[8]  + matrixLeft.m[5] * matrixRight.m[9]  + matrixLeft.m[9] * matrixRight.m[10]  + matrixLeft.m[13] * matrixRight.m[11];
-    m.m[13] = matrixLeft.m[1] * matrixRight.m[12] + matrixLeft.m[5] * matrixRight.m[13] + matrixLeft.m[9] * matrixRight.m[14]  + matrixLeft.m[13] * matrixRight.m[15];
-    
-    m.m[2]  = matrixLeft.m[2] * matrixRight.m[0]  + matrixLeft.m[6] * matrixRight.m[1]  + matrixLeft.m[10] * matrixRight.m[2]  + matrixLeft.m[14] * matrixRight.m[3];
-    m.m[6]  = matrixLeft.m[2] * matrixRight.m[4]  + matrixLeft.m[6] * matrixRight.m[5]  + matrixLeft.m[10] * matrixRight.m[6]  + matrixLeft.m[14] * matrixRight.m[7];
-    m.m[10] = matrixLeft.m[2] * matrixRight.m[8]  + matrixLeft.m[6] * matrixRight.m[9]  + matrixLeft.m[10] * matrixRight.m[10] + matrixLeft.m[14] * matrixRight.m[11];
-    m.m[14] = matrixLeft.m[2] * matrixRight.m[12] + matrixLeft.m[6] * matrixRight.m[13] + matrixLeft.m[10] * matrixRight.m[14] + matrixLeft.m[14] * matrixRight.m[15];
-    
-    m.m[3]  = matrixLeft.m[3] * matrixRight.m[0]  + matrixLeft.m[7] * matrixRight.m[1]  + matrixLeft.m[11] * matrixRight.m[2]  + matrixLeft.m[15] * matrixRight.m[3];
-    m.m[7]  = matrixLeft.m[3] * matrixRight.m[4]  + matrixLeft.m[7] * matrixRight.m[5]  + matrixLeft.m[11] * matrixRight.m[6]  + matrixLeft.m[15] * matrixRight.m[7];
-    m.m[11] = matrixLeft.m[3] * matrixRight.m[8]  + matrixLeft.m[7] * matrixRight.m[9]  + matrixLeft.m[11] * matrixRight.m[10] + matrixLeft.m[15] * matrixRight.m[11];
-    m.m[15] = matrixLeft.m[3] * matrixRight.m[12] + matrixLeft.m[7] * matrixRight.m[13] + matrixLeft.m[11] * matrixRight.m[14] + matrixLeft.m[15] * matrixRight.m[15];
-    
-    return m;
-#endif
-}
-
-static __inline__ Isgl3dMatrix4 Isgl3dMatrix4Add(Isgl3dMatrix4 matrixLeft, Isgl3dMatrix4 matrixRight)
-{
-#if defined(__ARM_NEON__)
-    float32x4x4_t iMatrixLeft = *(float32x4x4_t *)&matrixLeft;
-    float32x4x4_t iMatrixRight = *(float32x4x4_t *)&matrixRight;
-    float32x4x4_t m;
-    
-    m.val[0] = vaddq_f32(iMatrixLeft.val[0], iMatrixRight.val[0]);
-    m.val[1] = vaddq_f32(iMatrixLeft.val[1], iMatrixRight.val[1]);
-    m.val[2] = vaddq_f32(iMatrixLeft.val[2], iMatrixRight.val[2]);
-    m.val[3] = vaddq_f32(iMatrixLeft.val[3], iMatrixRight.val[3]);
-    
-    return *(Isgl3dMatrix4 *)&m;
-#else
-    Isgl3dMatrix4 m;
-    
-    m.m[0] = matrixLeft.m[0] + matrixRight.m[0];
-    m.m[1] = matrixLeft.m[1] + matrixRight.m[1];
-    m.m[2] = matrixLeft.m[2] + matrixRight.m[2];
-    m.m[3] = matrixLeft.m[3] + matrixRight.m[3];
-    
-    m.m[4] = matrixLeft.m[4] + matrixRight.m[4];
-    m.m[5] = matrixLeft.m[5] + matrixRight.m[5];
-    m.m[6] = matrixLeft.m[6] + matrixRight.m[6];
-    m.m[7] = matrixLeft.m[7] + matrixRight.m[7];
-    
-    m.m[8] = matrixLeft.m[8] + matrixRight.m[8];
-    m.m[9] = matrixLeft.m[9] + matrixRight.m[9];
-    m.m[10] = matrixLeft.m[10] + matrixRight.m[10];
-    m.m[11] = matrixLeft.m[11] + matrixRight.m[11];
-    
-    m.m[12] = matrixLeft.m[12] + matrixRight.m[12];
-    m.m[13] = matrixLeft.m[13] + matrixRight.m[13];
-    m.m[14] = matrixLeft.m[14] + matrixRight.m[14];
-    m.m[15] = matrixLeft.m[15] + matrixRight.m[15];
-    
-    return m;
-#endif
-}
-
-static __inline__ Isgl3dMatrix4 Isgl3dMatrix4Subtract(Isgl3dMatrix4 matrixLeft, Isgl3dMatrix4 matrixRight)
-{
-#if defined(__ARM_NEON__)
-    float32x4x4_t iMatrixLeft = *(float32x4x4_t *)&matrixLeft;
-    float32x4x4_t iMatrixRight = *(float32x4x4_t *)&matrixRight;
-    float32x4x4_t m;
-    
-    m.val[0] = vsubq_f32(iMatrixLeft.val[0], iMatrixRight.val[0]);
-    m.val[1] = vsubq_f32(iMatrixLeft.val[1], iMatrixRight.val[1]);
-    m.val[2] = vsubq_f32(iMatrixLeft.val[2], iMatrixRight.val[2]);
-    m.val[3] = vsubq_f32(iMatrixLeft.val[3], iMatrixRight.val[3]);
-    
-    return *(Isgl3dMatrix4 *)&m;
-#else
-    Isgl3dMatrix4 m;
-    
-    m.m[0] = matrixLeft.m[0] - matrixRight.m[0];
-    m.m[1] = matrixLeft.m[1] - matrixRight.m[1];
-    m.m[2] = matrixLeft.m[2] - matrixRight.m[2];
-    m.m[3] = matrixLeft.m[3] - matrixRight.m[3];
-    
-    m.m[4] = matrixLeft.m[4] - matrixRight.m[4];
-    m.m[5] = matrixLeft.m[5] - matrixRight.m[5];
-    m.m[6] = matrixLeft.m[6] - matrixRight.m[6];
-    m.m[7] = matrixLeft.m[7] - matrixRight.m[7];
-    
-    m.m[8] = matrixLeft.m[8] - matrixRight.m[8];
-    m.m[9] = matrixLeft.m[9] - matrixRight.m[9];
-    m.m[10] = matrixLeft.m[10] - matrixRight.m[10];
-    m.m[11] = matrixLeft.m[11] - matrixRight.m[11];
-    
-    m.m[12] = matrixLeft.m[12] - matrixRight.m[12];
-    m.m[13] = matrixLeft.m[13] - matrixRight.m[13];
-    m.m[14] = matrixLeft.m[14] - matrixRight.m[14];
-    m.m[15] = matrixLeft.m[15] - matrixRight.m[15];
-    
-    return m;
-#endif
-}
-
-#endif
 
 
 #pragma mark - iSGL3D specific math
@@ -229,19 +50,6 @@ static __inline__ Isgl3dMatrix4 Isgl3dMatrix4Subtract(Isgl3dMatrix4 matrixLeft, 
 
 #pragma mark -
 
-/**
- * Creates an Isgl3dMatrix4 structure from given values.
- * @result A specified matrix.
- */
-static inline Isgl3dMatrix4 im4Create(float sxx, float sxy, float sxz, float tx, float syx, float syy, float syz, float ty, float szx, float szy, float szz, float tz, float swx, float swy, float swz, float tw)
-{
-	Isgl3dMatrix4 matrix = {
-		sxx, syx, szx, swx,
-		sxy, syy, szy, swy,
-		sxz, syz, szz, swz,
-		tx,  ty,  tz,  tw };
-	return matrix;	
-}
 
 /**
  * Creates an Isgl3dMatrix4 structure with all values set to 0.
@@ -254,20 +62,6 @@ static inline Isgl3dMatrix4 im4CreateEmpty()
 		0, 0, 0, 0,
 		0, 0, 0, 0,
 		0, 0, 0, 0 };
-	return matrix;	
-}
-
-/**
- * Creates an identity matrix.
- * @result An identity matrix.
- */
-static inline Isgl3dMatrix4 im4CreateIdentity()
-{
-	Isgl3dMatrix4 matrix = {
-		1, 0, 0, 0,
-		0, 1, 0, 0,
-		0, 0, 1, 0,
-		0, 0, 0, 1 };
 	return matrix;	
 }
 
@@ -387,39 +181,6 @@ static inline float im4Determinant3x3(Isgl3dMatrix4 * m)
 }
 
 /**
- * Inverts the matrix.
- */
-void im4Invert(Isgl3dMatrix4 * m);
-
-/**
- * Inverts the 3x3 part of the matrix.
- */
-void im4Invert3x3(Isgl3dMatrix4 * m);
-
-/**
- * Copies the matrix components of one matrix into another.
- * @param a The destination matrix.
- * @param b The source matrix.
- */
-static inline void im4Copy(Isgl3dMatrix4 * a, Isgl3dMatrix4 * b)
-{
-	a->m00 = b->m00;	a->m10 = b->m10;	a->m20 = b->m20;	a->m30  = b->m30;
-	a->m01 = b->m01;	a->m11 = b->m11;	a->m21 = b->m21;	a->m31  = b->m31;
-	a->m02 = b->m02;	a->m12 = b->m12;	a->m22 = b->m22;	a->m32  = b->m32;
-	a->m03 = b->m03;	a->m13 = b->m13;	a->m23 = b->m23;	a->m33  = b->m33;
-}
-
-/**
- * Performs a rotation on a matrix around a given axis.
- * @param m The matrix.
- * @param angle The angle of rotation in degrees.
- * @param x The x component of the axis of rotation.
- * @param y The y component of the axis of rotation.
- * @param z The z component of the axis of rotation.
- */
-void im4Rotate(Isgl3dMatrix4 * m, float angle, float x, float y, float z);
-
-/**
  * Performs a translation on a matrix by a given distance.
  * @param m The matrix.
  * @param x The distance along the x-axis of the translation.
@@ -518,61 +279,6 @@ static inline float im4TranslationLength(Isgl3dMatrix4 * m)
 }
 
 /**
- * Multiplies two matrices. The result is a = a x b.
- * @param a The left-hand matrix, stores result after calculation.
- * @param b The right-hand matrix.
- */
-void im4Multiply(Isgl3dMatrix4 * a, Isgl3dMatrix4 * b);
-
-/**
- * Multiplies two matrices. The result is a = b x a.
- * @param a The right-hand matrix, stores result after calculation.
- * @param b The left-hand matrix.
- */
-void im4MultiplyOnLeft(Isgl3dMatrix4 * a, Isgl3dMatrix4 * b);
-
-/**
- * Performs a multiplication on a given matrix with it being on the left, using only the 3x3 part of the matrix.
- * The resulting matrix is stored in "a".
- * The translation components of the matrix are not affected.
- * @param a The matrix to be multiplied on the left, result stored in this matrix. 
- * @param b The matrix to be multiplied on the right. 
- */
-void im4MultiplyOnLeft3x3(Isgl3dMatrix4 * a, Isgl3dMatrix4 * b);
-
-/**
- * Performs a multiplication by the matrix on the given 4-component vector.
- * @param m The matrix multiplier. 
- * @param vector The vector to be multiplied.
- * @result The result of the multiplication on given vector
- */
-Isgl3dVector4 im4MultVector4(Isgl3dMatrix4 * m, Isgl3dVector4 * vector); 
-
-/**
- * Performs a multiplication by the matrix on the given 3-component vector with the translational components of the matrix included.
- * @param m The matrix multiplier. 
- * @param vector The vector to be multiplied.
- * @result The result of the multiplication on given vector
- */
-Isgl3dVector3 im4MultVector(Isgl3dMatrix4 * m, Isgl3dVector3 * vector); 
-
-/**
- * Performs a multiplication on the given 3-component vector with the only the 3x3 part of the matrix.
- * @param m The matrix multiplier. 
- * @param vector The vector to be multiplied.
- * @result The result of the multiplication on given vector
- */
-Isgl3dVector3 im4MultVector3x3(Isgl3dMatrix4 * m, Isgl3dVector3 * vector); 
-
-/**
- * Performs a multiplication by the matrix on the array equivalent of a 4-component vector.
- * @param m The matrix multiplier. 
- * @param array The array to be multiplied. Result is stored in the same array.
- */
-void im4MultArray4(Isgl3dMatrix4 * m, float * array); 
-
-
-/**
  * Returns the 3x3 part of a matrix as a column-major float array.
  * @param m The matrix. 
  * @param array The float array into which the column-major representation of the matrix is set.
@@ -656,5 +362,6 @@ Isgl3dVector3 im4ToScaleValues(Isgl3dMatrix4 * m);
  */
 static inline Isgl3dVector3 im4ToPosition(Isgl3dMatrix4 * m) 
 {
-	return iv3(m->m30, m->m31, m->m32);
+	return Isgl3dVector3Make(m->m30, m->m31, m->m32);
 }
+

@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -45,7 +45,7 @@
 	}
 		
 	if ([inColorString length] != 6 && [inColorString length] != 8) {
-		Isgl3dLog(Error, @"Input string is not a valid color: %s", inColorString);
+		Isgl3dDebugLog(Isgl3dLogLevelError, @"Input string is not a valid color: %s", inColorString);
 		return;
 	}
 
@@ -91,7 +91,7 @@
 	return [NSString stringWithFormat:@"%02x%02x%02x%02x", lroundf(255.0 * color[0]), lroundf(255.0 * color[1]), lroundf(255.0 * color[2]), lroundf(255.0 * color[3])];
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	[super dealloc];
 }
 

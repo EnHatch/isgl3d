@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,15 +28,17 @@
 #import "Isgl3dGLMesh.h"
 #import "Isgl3dMaterial.h"
 #import "Isgl3dGLRenderer.h"
+#import "Isgl3dMatrix4.h"
+
 
 @implementation Isgl3dAnimatedMeshNode
 
-+ (id) nodeWithMesh:(Isgl3dGLMesh *)mesh andMaterial:(Isgl3dMaterial *)material {
++ (id)nodeWithMesh:(Isgl3dGLMesh *)mesh andMaterial:(Isgl3dMaterial *)material {
 	return [[[self alloc] initWithMesh:mesh andMaterial:material] autorelease];
 }
 
 
-- (id) initWithMesh:(Isgl3dGLMesh *)mesh andMaterial:(Isgl3dMaterial *)material {
+- (id)initWithMesh:(Isgl3dGLMesh *)mesh andMaterial:(Isgl3dMaterial *)material {
     if ((self = [super initWithMesh:mesh andMaterial:material])) {
 			
 		_boneBatches = [[NSMutableArray alloc] init];
@@ -48,41 +50,41 @@
     return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	[_boneBatches release];
 	
 	[super dealloc];
 }
 
-- (void) addBoneBatch:(Isgl3dBoneBatch *)boneBatch {
+- (void)addBoneBatch:(Isgl3dBoneBatch *)boneBatch {
 	[_boneBatches addObject:boneBatch];
 }
 
-- (void) setNumberOfBonesPerVertex:(unsigned int)numberOfBonesPerVertex {
+- (void)setNumberOfBonesPerVertex:(unsigned int)numberOfBonesPerVertex {
 	_numberOfBonesPerVertex = numberOfBonesPerVertex;
 }
 
-- (void) setFrame:(unsigned int)frameNumber {
+- (void)setFrame:(unsigned int)frameNumber {
 	for (Isgl3dBoneBatch * boneBatch in _boneBatches) {
 		[boneBatch setFrame:frameNumber];
 	}
 }
 
-- (void) setTransformationDirty:(BOOL)isDirty {
+- (void)setTransformationDirty:(BOOL)isDirty {
 	[super setTransformationDirty:isDirty];
 	for (Isgl3dBoneBatch * boneBatch in _boneBatches) {
 		[boneBatch setTransformationDirty:isDirty];
 	}
 }
 
-- (void) updateWorldTransformation:(Isgl3dMatrix4 *)parentTransformation {
+- (void)updateWorldTransformation:(Isgl3dMatrix4 *)parentTransformation {
 	BOOL transformationDirty = _transformationDirty;
 	[super updateWorldTransformation:parentTransformation];
 	
 	// Need to reset the current node transformation: the "model" matrices 
 	// Are included in the bone matrices.
 	if (transformationDirty) {
-		_worldTransformation = im4Identity();
+		_worldTransformation = Isgl3dMatrix4Identity;
 	}
 	
 	for (Isgl3dBoneBatch * boneBatch in _boneBatches) {
@@ -91,7 +93,7 @@
 
 }
 
-- (void) renderMesh:(Isgl3dGLRenderer *)renderer {
+- (void)renderMesh:(Isgl3dGLRenderer *)renderer {
 	[renderer enableSkinning:YES];
 
 	[renderer setNumberOfBonesPerVertex:_numberOfBonesPerVertex];

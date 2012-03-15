@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,11 +33,38 @@
 #import "Isgl3dTextureMaterial.h"
 #import "Isgl3dLight.h"
 #import "Isgl3dGLVBOData.h"
-#import "Isgl3dCamera.h"
+#import "Isgl3dNodeCamera.h"
+#import "Isgl3dLookAtCamera.h"
 #import "Isgl3dDirector.h"
 #import "isgl3dTypes.h"
 #import "isgl3dArray.h"
 #import "Isgl3dLog.h"
+#import "Isgl3dMathUtils.h"
+
+
+@interface Isgl3dPODImporter () {
+@private
+	CPVRTModelPOD * _podScene;
+	NSString * _podPath;
+	
+	NSMutableArray * _meshes;
+	NSMutableDictionary * _meshNodes;
+	NSMutableDictionary * _boneNodes;
+	NSMutableDictionary * _indexedNodes;
+	NSMutableArray * _boneNodeIndices;
+	NSMutableArray * _textures;
+	NSMutableArray * _materials;
+	NSMutableArray * _cameras;
+	NSMutableArray * _lights;
+	
+	NSMutableDictionary * _textureMods;
+	
+	BOOL _buildSceneObjectsComplete;
+	BOOL _buildMeshNodesComplete;
+	BOOL _boneBuildComplete;
+	BOOL _meshesAndMaterialsComplete;
+}
+@end
 
 @interface Isgl3dPODImporter (PrivateMethods)
 
@@ -56,38 +83,59 @@
  */
 - (Isgl3dAnimatedMeshNode *) createAnimatedMeshNode:(unsigned int)nodeId meshId:(unsigned int)meshId mesh:(Isgl3dGLMesh *)mesh material:(Isgl3dMaterial *)material;
 
-- (void) buildBones;
-- (void) buildMeshesAndMaterials;
-- (void) buildMeshNodes;
+- (void)buildBones;
+- (void)buildMeshesAndMaterials;
+- (void)buildMeshNodes;
 
 @end
 
 @implementation Isgl3dPODImporter
 
-
-+ (id) podImporterWithFile:(NSString *)path {
-	return [[[self alloc] initWithFile:path] autorelease];
++ (id)podImporterWithResource:(NSString *)name {
+	return [[[self alloc] initWithResource:name] autorelease];
 }
 
-- (id) initWithFile:(NSString *)path {
-	if ((self = [super init])) {
++ (id)podImporterWithFile:(NSString *)filePath {
+	return [[[self alloc] initWithFile:filePath] autorelease];
+}
+
+- (id)initWithResource:(NSString *)name {
+    if ((name == nil) || (name.length == 0)) {
+        [NSException raise:NSInvalidArgumentException format:@"invalid resource name specified"];
+    }
+
+    NSString *resourcePath = [[NSBundle mainBundle] pathForResource:name ofType:nil];
+    
+    if (resourcePath == nil) {
+        Isgl3dClassDebugLog(Isgl3dLogLevelError, @"POD file %@ does not exist.", resourcePath);
+
+        [self release];
+        self = nil;
+        return self;
+    }
+        
+    return [self initWithFile:resourcePath];
+}
+
+- (id)initWithFile:(NSString *)filePath {
+    if ((filePath == nil) || (filePath.length == 0)) {
+        [NSException raise:NSInvalidArgumentException format:@"invalid file path specified"];
+    }
+
+	if (self = [super init]) {
 		_podScene = new CPVRTModelPOD();
 
-		// cut filename into name and extension
-		NSString * extension = [path pathExtension];
-		NSString * fileName = [path stringByDeletingPathExtension];
-		
-		if (![[NSBundle mainBundle] pathForResource:fileName ofType:extension]) {
-			NSLog(@"iSGL3D : Error : Isgl3dPODImporter : POD file %@ does not exist.", path);
-		}
-		
-		if (_podScene->ReadFromFile([[[NSBundle mainBundle] pathForResource:fileName ofType:extension] UTF8String]) != PVR_SUCCESS) {
-			NSLog(@"iSGL3D : Error : Isgl3dPODImporter : Unable to parse POD file %@", path);
+		if (_podScene->ReadFromFile([filePath UTF8String]) != PVR_SUCCESS) {
+			Isgl3dClassDebugLog(Isgl3dLogLevelError, @"Unable to parse POD file %@", filePath);
 			delete _podScene;
-			return nil;
+            _podScene = NULL;
+
+            [self release];
+            self = nil;
+			return self;
 		}
 		
-		_podPath = path;
+		_podPath = filePath;
 
 		_meshes = [[NSMutableArray alloc] init];
 		_meshNodes = [[NSMutableDictionary alloc] init];
@@ -110,7 +158,7 @@
 	
 }
 
-- (void) dealloc {
+- (void)dealloc {
 
 	[_meshes release];
 	[_meshNodes release];
@@ -128,76 +176,76 @@
 	[super dealloc];
 }
 
-- (void) printPODInfo {
-	NSLog(@"POD info:");
-	NSLog(@"Number of cameras: %i", _podScene->nNumCamera);
+- (void)printPODInfo {
+	Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"POD info:");
+	Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"Number of cameras: %i", _podScene->nNumCamera);
 	for (int i = 0; i < _podScene->nNumCamera; i++) {
 		SPODCamera & cameraInfo = _podScene->pCamera[i];
-		NSLog(@"\tcamera[%i] target index %i:", i, cameraInfo.nIdxTarget);
-		NSLog(@"\tcamera[%i] FOV %f:", i, cameraInfo.fFOV);
-		NSLog(@"\tcamera[%i] near %f:", i, cameraInfo.fNear);
-		NSLog(@"\tcamera[%i] far %f:", i, cameraInfo.fFar);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tcamera[%i] target index %i:", i, cameraInfo.nIdxTarget);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tcamera[%i] FOV %f:", i, cameraInfo.fFOV);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tcamera[%i] near %f:", i, cameraInfo.fNear);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tcamera[%i] far %f:", i, cameraInfo.fFar);
 	}
-	NSLog(@"\n");
+	NSDebugLog(@"\n");
 
-	NSLog(@"Number of lights: %i", _podScene->nNumLight);
+	Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"Number of lights: %i", _podScene->nNumLight);
 	for (int i = 0; i < _podScene->nNumLight; i++) {
 		SPODLight & lightInfo = _podScene->pLight[i];
-		NSLog(@"\tlight[%i] target index %i:", i, lightInfo.nIdxTarget);
-		NSLog(@"\tlight[%i] color [%f, %f, %f]:", i, lightInfo.pfColour[0], lightInfo.pfColour[1], lightInfo.pfColour[2]);
-		NSLog(@"\tlight[%i] type (0 = Point, 1 = Directional, 2 = Spot) %i:", i, lightInfo.eType);
-		NSLog(@"\tlight[%i] constant attenuation %f:", i, lightInfo.fConstantAttenuation);
-		NSLog(@"\tlight[%i] linear attenuation %f:", i, lightInfo.fLinearAttenuation);
-		NSLog(@"\tlight[%i] falloff angle %f:", i, lightInfo.fFalloffAngle);
-		NSLog(@"\tlight[%i] falloff exponent %f:", i, lightInfo.fFalloffExponent);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tlight[%i] target index %i:", i, lightInfo.nIdxTarget);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tlight[%i] color [%f, %f, %f]:", i, lightInfo.pfColour[0], lightInfo.pfColour[1], lightInfo.pfColour[2]);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tlight[%i] type (0 = Point, 1 = Directional, 2 = Spot) %i:", i, lightInfo.eType);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tlight[%i] constant attenuation %f:", i, lightInfo.fConstantAttenuation);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tlight[%i] linear attenuation %f:", i, lightInfo.fLinearAttenuation);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tlight[%i] falloff angle %f:", i, lightInfo.fFalloffAngle);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tlight[%i] falloff exponent %f:", i, lightInfo.fFalloffExponent);
 	}
-	NSLog(@"\n");
+	NSDebugLog(@"\n");
 
-	NSLog(@"Number of meshes: %i", _podScene->nNumMesh);
-	NSLog(@"Number of mesh nodes: %i", _podScene->nNumMeshNode);
+	Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"Number of meshes: %i", _podScene->nNumMesh);
+	Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"Number of mesh nodes: %i", _podScene->nNumMeshNode);
 	for (int i = 0; i < _podScene->nNumMesh; i++) {
 		SPODMesh & mesh = _podScene->pMesh[i];
-		NSLog(@"\tmesh[%i] number of vertices %i:", i, mesh.nNumVertex);
-		NSLog(@"\tmesh[%i] number of faces %i:", i, mesh.nNumFaces);
-		NSLog(@"\tmesh[%i] is interleaved: %@", i, (mesh.pInterleaved == 0) ? @"no" : @"yes");
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tmesh[%i] number of vertices %i:", i, mesh.nNumVertex);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tmesh[%i] number of faces %i:", i, mesh.nNumFaces);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tmesh[%i] is interleaved: %@", i, (mesh.pInterleaved == 0) ? @"no" : @"yes");
 	}
-	NSLog(@"\n");
+	NSDebugLog(@"\n");
 
-	NSLog(@"Number of nodes: %i", _podScene->nNumNode);
+	Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"Number of nodes: %i", _podScene->nNumNode);
 	for (int i = 0; i < _podScene->nNumNode; i++) {
 		SPODNode & node = _podScene->pNode[i];
-		NSLog(@"\tnode[%i] index %i:", i, node.nIdx);
-		NSLog(@"\tnode[%i] name %s:", i, node.pszName);
-		NSLog(@"\tnode[%i] material %i:", i, node.nIdxMaterial);
-		NSLog(@"\tnode[%i] parent %i:", i, node.nIdxParent);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tnode[%i] index %i:", i, node.nIdx);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tnode[%i] name %s:", i, node.pszName);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tnode[%i] material %i:", i, node.nIdxMaterial);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tnode[%i] parent %i:", i, node.nIdxParent);
 	}
-	NSLog(@"\n");
+	NSDebugLog(@"\n");
 
-	NSLog(@"Number of textures: %i", _podScene->nNumTexture);
+	NSDebugLog(@"Number of textures: %i", _podScene->nNumTexture);
 	for (int i = 0; i < _podScene->nNumTexture; i++) {
 		SPODTexture & texture = _podScene->pTexture[i];
-		NSLog(@"\ttexture[%i] filename %s:", i, texture.pszName);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\ttexture[%i] filename %s:", i, texture.pszName);
 	}
-	NSLog(@"\n");
+	NSDebugLog(@"\n");
 	
-	NSLog(@"Number of materials: %i", _podScene->nNumMaterial);
+	Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"Number of materials: %i", _podScene->nNumMaterial);
 	for (int i = 0; i < _podScene->nNumMaterial; i++) {
 		SPODMaterial & material = _podScene->pMaterial[i];
-		NSLog(@"\tmaterial[%i] name %s:", i, material.pszName);
-		NSLog(@"\tmaterial[%i] texture diffuse index %i:", i, material.nIdxTexDiffuse);
-		NSLog(@"\tmaterial[%i] texture ambient index %i:", i, material.nIdxTexAmbient);
-		NSLog(@"\tmaterial[%i] texture specular index %i:", i, material.nIdxTexSpecularColour);
-		NSLog(@"\tmaterial[%i] texture spec level index %i:", i, material.nIdxTexSpecularLevel);
-		NSLog(@"\tmaterial[%i] texture bump index %i:", i, material.nIdxTexBump);
-		NSLog(@"\tmaterial[%i] opacity %f:", i, material.fMatOpacity);
-		NSLog(@"\tmaterial[%i] ambient [%f, %f, %f]:", i, material.pfMatAmbient[0], material.pfMatAmbient[1], material.pfMatAmbient[2]);
-		NSLog(@"\tmaterial[%i] diffuse [%f, %f, %f]:", i, material.pfMatDiffuse[0], material.pfMatDiffuse[1], material.pfMatDiffuse[2]);
-		NSLog(@"\tmaterial[%i] specular [%f, %f, %f]:", i, material.pfMatSpecular[0], material.pfMatSpecular[1], material.pfMatSpecular[2]);
-		NSLog(@"\tmaterial[%i] shininess %f:", i, material.fMatShininess);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tmaterial[%i] name %s:", i, material.pszName);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tmaterial[%i] texture diffuse index %i:", i, material.nIdxTexDiffuse);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tmaterial[%i] texture ambient index %i:", i, material.nIdxTexAmbient);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tmaterial[%i] texture specular index %i:", i, material.nIdxTexSpecularColour);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tmaterial[%i] texture spec level index %i:", i, material.nIdxTexSpecularLevel);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tmaterial[%i] texture bump index %i:", i, material.nIdxTexBump);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tmaterial[%i] opacity %f:", i, material.fMatOpacity);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tmaterial[%i] ambient [%f, %f, %f]:", i, material.pfMatAmbient[0], material.pfMatAmbient[1], material.pfMatAmbient[2]);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tmaterial[%i] diffuse [%f, %f, %f]:", i, material.pfMatDiffuse[0], material.pfMatDiffuse[1], material.pfMatDiffuse[2]);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tmaterial[%i] specular [%f, %f, %f]:", i, material.pfMatSpecular[0], material.pfMatSpecular[1], material.pfMatSpecular[2]);
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"\tmaterial[%i] shininess %f:", i, material.fMatShininess);
 	}
-	NSLog(@"\n");
+	NSDebugLog(@"\n");
 	
-	NSLog(@"Number of frames: %i", _podScene->nNumFrame);
+	Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"Number of frames: %i", _podScene->nNumFrame);
 }
 
 - (unsigned int) numberOfMeshes {
@@ -217,7 +265,7 @@
 }
 
 
-- (void) addMeshesToScene:(Isgl3dNode *)scene {
+- (void)addMeshesToScene:(Isgl3dNode *)scene {
 	
 	if (!_buildMeshNodesComplete) {
 		[_meshNodes removeAllObjects];
@@ -229,7 +277,7 @@
 	for (int i = 0; i < _podScene->nNumMeshNode; i++) {
 		SPODNode & nodeInfo = _podScene->pNode[i];
 
-		NSLog(@"Adding node: %s:", nodeInfo.pszName);
+		Isgl3dClassDebugLog(Isgl3dLogLevelDebug, @"Adding node: %s:", nodeInfo.pszName);
 		
 		Isgl3dNode * node = [_meshNodes objectForKey:[NSString stringWithUTF8String:nodeInfo.pszName]];
 		
@@ -254,7 +302,7 @@
 	
 	Isgl3dMeshNode * node = [_meshNodes objectForKey:nodeName];
 	if (!node) {
-		NSLog(@"Unable to find mesh node with name %@", nodeName);
+        Isgl3dClassDebugLog(Isgl3dLogLevelError, @"Unable to find mesh node with name %@", nodeName);
 	}
 	return node;
 }
@@ -270,7 +318,7 @@
 
 - (Isgl3dGLMesh *) meshAtIndex:(unsigned int)meshIndex {
 	if (meshIndex >= _podScene->nNumMesh) {
-		NSLog(@"Mesh at index %i not available: POD scene contains %i meshses", meshIndex, _podScene->nNumMesh);
+		Isgl3dClassDebugLog(Isgl3dLogLevelError, @"Mesh at index %i not available: POD scene contains %i meshses", meshIndex, _podScene->nNumMesh);
 		return nil;
 	}
 	
@@ -292,19 +340,19 @@
 	}	
 
 	if (!material) {
-		NSLog(@"Unable to find material with name: %@", materialName);
+		Isgl3dClassDebugLog(Isgl3dLogLevelError, @"Unable to find material with name: %@", materialName);
 	}
 	return material;
 }
 
 
-- (Isgl3dCamera *) cameraAtIndex:(unsigned int)cameraIndex {
+- (Isgl3dNodeCamera *) cameraAtIndex:(unsigned int)cameraIndex {
 	if (!_buildSceneObjectsComplete) {
 		[self buildSceneObjects];
 	}	
 	
 	if (cameraIndex >= _podScene->nNumCamera) {
-		NSLog(@"Camera at index %i not available: POD scene contains %i cameras", cameraIndex, _podScene->nNumCamera);
+		Isgl3dClassDebugLog(Isgl3dLogLevelError, @"Camera at index %i not available: POD scene contains %i cameras", cameraIndex, _podScene->nNumCamera);
 		return nil;
 	}
 	
@@ -317,7 +365,7 @@
 	}	
 
 	if (lightIndex >= _podScene->nNumLight) {
-		NSLog(@"Light at index %i not available: POD scene contains %i lights", lightIndex, _podScene->nNumLight);
+		Isgl3dClassDebugLog(Isgl3dLogLevelError, @"Light at index %i not available: POD scene contains %i lights", lightIndex, _podScene->nNumLight);
 		return nil;
 	}
 	
@@ -330,7 +378,7 @@
 
 
 
-- (void) configureLight:(Isgl3dLight *)light fromNode:(NSString *)nodeName {
+- (void)configureLight:(Isgl3dLight *)light fromNode:(NSString *)nodeName {
 	for (int i = 0; i < _podScene->nNumMeshNode; i++) {
 		SPODNode & node = _podScene->pNode[i];
 		if ([nodeName isEqualToString:[NSString stringWithUTF8String:node.pszName]]) {
@@ -343,11 +391,11 @@
 		}
 	}
 	
-	NSLog(@"Unable to find mesh with name %@", nodeName);
+	Isgl3dClassDebugLog(Isgl3dLogLevelError, @"Unable to find mesh with name %@", nodeName);
 }
 
 
-- (void) addBonesToSkeleton:(Isgl3dSkeletonNode *)skeleton {
+- (void)addBonesToSkeleton:(Isgl3dSkeletonNode *)skeleton {
 
 	if (!_boneBuildComplete) {
 		[_boneNodeIndices removeAllObjects];
@@ -362,11 +410,9 @@
 		int nodeId = [nodeIndex integerValue];
 		SPODNode & nodeInfo = _podScene->pNode[nodeId];
 	
-		NSLog(@"Adding bone to skeleton: %s  (%i)", nodeInfo.pszName, nodeId);
+		Isgl3dClassDebugLog(Isgl3dLogLevelDebug, @"Adding bone to skeleton: %s  (%i)", nodeInfo.pszName, nodeId);
 		
 		Isgl3dBoneNode * node = [_boneNodes objectForKey:[NSString stringWithUTF8String:nodeInfo.pszName]];
-		//NSLog(@"bone position = %f %f %f", node.x, node.y, node.z);
-
 		[skeleton addChild:node];
 		
 		/*
@@ -383,7 +429,7 @@
 	_boneBuildComplete = NO;
 }
 
-- (void) modifyTexture:(NSString *)podTextureFileName withTexture:(NSString *)replacementFileName {
+- (void)modifyTexture:(NSString *)podTextureFileName withTexture:(NSString *)replacementFileName {
 	[_textureMods setObject:replacementFileName forKey:podTextureFileName];
 }
 
@@ -393,7 +439,7 @@
  */
 
 
-- (void) buildMeshesAndMaterials {
+- (void)buildMeshesAndMaterials {
 	// Iterate over nodes and create meshes and materials as necessary
 
 	// Create array of textures
@@ -409,10 +455,10 @@
 		// Image formats supported by UIImage and pvr
 		NSArray * acceptedFormats = [NSArray arrayWithObjects:@"png", @"jpg", @"jpeg", @"tiff", @"tif", @"gif", @"bmp", @"BMPf", @"ico", @"cur", @"xbm", @"pvr", nil];
 		if (![acceptedFormats containsObject:extension]) {
-			NSLog(@"iSGL3D : Error : Isgl3dPODImporter : POD %@ contains texture image with format that is not supported : %@", _podPath, textureFileName);
+			Isgl3dClassDebugLog(Isgl3dLogLevelError, @"POD %@ contains texture image with format that is not supported : %@", _podPath, textureFileName);
 		} 
 		
-		NSLog(@"Creating texture from %@:", textureFileName);
+		Isgl3dClassDebugLog(Isgl3dLogLevelDebug, @"Creating texture from %@:", textureFileName);
 		[_textures addObject:textureFileName];
 	}
 
@@ -422,7 +468,7 @@
 		SPODMaterial & materialInfo = _podScene->pMaterial[i];
 	
 		Isgl3dColorMaterial * material;
-		NSLog(@"Creating material: %s:", materialInfo.pszName);
+		Isgl3dClassDebugLog(Isgl3dLogLevelDebug, @"Creating material: %s:", materialInfo.pszName);
 		
 		if (!materialInfo.pszEffectFile) {
 			if (materialInfo.nIdxTexDiffuse >= 0 && materialInfo.nIdxTexDiffuse < [_textures count]) {
@@ -443,7 +489,7 @@
 			
 			[_materials addObject:material];
 		} else {
-			NSLog(@"Material has effect file and is currently not supported: %s", materialInfo.pszEffectFile);
+			Isgl3dClassDebugLog(Isgl3dLogLevelWarn, @"Material has effect file and is currently not supported: %s", materialInfo.pszEffectFile);
 		}
 	}	
 	
@@ -458,7 +504,7 @@
 	_meshesAndMaterialsComplete = YES;
 }
 
-- (void) buildSceneObjects {
+- (void)buildSceneObjects {
 	
 	if (!_buildMeshNodesComplete) {
 		[self buildMeshNodes];
@@ -468,21 +514,31 @@
 	// Create array of cameras
 	for (int i = 0; i < _podScene->nNumCamera; i++) {
 		SPODCamera & cameraInfo = _podScene->pCamera[i];
-		PVRTVECTOR3 pos;
-		PVRTVECTOR3 lookAt;
-
-		float fov = _podScene->GetCameraPos(pos, lookAt, i) * 180 / M_PI;
-		float fNear = cameraInfo.fNear;
-		float fFar = cameraInfo.fFar;
+		float nearZ = cameraInfo.fNear;
+		float farZ = cameraInfo.fFar;
+        
+        PVRTVECTOR3 eye = { 0.0f, 0.0f, 0.0f };
+        PVRTVECTOR3 center = { 0.0f, 0.0f, 0.0f };
+        PVRTVECTOR3 up = { 0.0f, 0.0f, 0.0f };
+        float fovyRadians = _podScene->GetCamera(eye, center, up, i);
 		
-		NSLog(@"Creating camera: pos = [%f, %f, %f], lookAt = [%f, %f, %f], fov = %f, near = %f, far = %f", pos.x, pos.y, pos.z, lookAt.x, lookAt.y, lookAt.z, fov, fNear, fFar);
+		Isgl3dClassDebugLog(Isgl3dLogLevelDebug, @"Creating camera: pos = [%f, %f, %f], lookAt = [%f, %f, %f], fov = %f, near = %f, far = %f",
+                            eye.x, eye.y, eye.z, center.x, center.y, center.z, Isgl3dMathRadiansToDegrees(fovyRadians), nearZ, farZ);
 	
 		CGSize windowSize = [Isgl3dDirector sharedInstance].windowSize;
-		Isgl3dCamera * camera = [[Isgl3dCamera alloc] initWithWidth:windowSize.width height:windowSize.height andCoordinates:pos.x y:pos.y z:pos.z upX:0 upY:1 upZ:0 lookAtX:lookAt.x lookAtY:lookAt.y lookAtZ:lookAt.z];
-		[camera setPerspectiveProjection:fov near:fNear far:fFar orientation:[Isgl3dDirector sharedInstance].deviceOrientation];
-		
-
-		[_cameras addObject:[camera autorelease]];
+        
+        Isgl3dPerspectiveProjection *perspectiveLens = [[Isgl3dPerspectiveProjection alloc] initFromViewSize:windowSize fovyRadians:fovyRadians nearZ:nearZ farZ:farZ];
+        
+        Isgl3dNodeCamera *nodeCamera = [[Isgl3dNodeCamera alloc] initWithLens:perspectiveLens
+                                                                     position:Isgl3dVector3Make(eye.x, eye.y, eye.z)
+                                                                 lookAtTarget:Isgl3dVector3Make(center.x, center.y, center.z)
+                                                                           up:Isgl3dVector3Make(up.x, up.y, up.z)];
+        
+        //Isgl3dLookAtCamera *camera = [[Isgl3dLookAtCamera alloc] initWithLens:perspectiveLens eyeX:eye.x eyeY:eye.y eyeZ:eye.z centerX:center.x centerY:center.y centerZ:center.z upX:up.x upY:up.y upZ:up.z];
+        [perspectiveLens release];
+        
+		[_cameras addObject:nodeCamera];
+        [nodeCamera release];
 	}
 	
 	// Create lights
@@ -500,7 +556,7 @@
 		light.quadraticAttenuation = lightInfo.fQuadraticAttenuation;
 		if (lightInfo.eType == ePODPoint) {
 			light.lightType = PointLight;
-			light.position = iv3(pos.x, pos.y, pos.z);
+			light.position = Isgl3dVector3Make(pos.x, pos.y, pos.z);
 
 		} else if (lightInfo.eType == ePODDirectional) {
 			light.lightType = DirectionalLight;
@@ -508,7 +564,7 @@
 
 		} else {
 			light.lightType = SpotLight;
-			light.position = iv3(pos.x, pos.y, pos.z);
+			light.position = Isgl3dVector3Make(pos.x, pos.y, pos.z);
 			light.spotCutoffAngle = lightInfo.fFalloffAngle * 180 / M_PI;
 			light.spotFalloffExponent = lightInfo.fFalloffExponent;
 			[light setSpotDirection:dirn.x y:dirn.y z:dirn.z];
@@ -520,7 +576,7 @@
 	_buildSceneObjectsComplete = YES;
 }
 
-- (void) buildMeshNodes {
+- (void)buildMeshNodes {
 	
 	if (!_meshesAndMaterialsComplete) {
 		[self buildMeshesAndMaterials];
@@ -539,7 +595,7 @@
 		if (meshNodeInfo.nIdxMaterial >= 0 && meshNodeInfo.nIdxMaterial < [_materials count]) {
 			material = [_materials objectAtIndex:meshNodeInfo.nIdxMaterial];
 		} else {
-			NSLog(@"No material for mesh: %s", meshNodeInfo.pszName);
+			Isgl3dClassDebugLog(Isgl3dLogLevelWarn, @"No material for mesh: %s", meshNodeInfo.pszName);
 		}
 
 
@@ -551,17 +607,23 @@
 		
 		} else {
 		
-			NSLog(@"Bulding mesh node: %s:", meshNodeInfo.pszName);
+			Isgl3dClassDebugLog(Isgl3dLogLevelDebug, @"Bulding mesh node: %s:", meshNodeInfo.pszName);
 			node = [Isgl3dMeshNode nodeWithMesh:mesh andMaterial:material];
 			[_meshNodes setObject:node forKey:[NSString stringWithUTF8String:meshNodeInfo.pszName]];
 		}			
 
 		[_indexedNodes setObject:node forKey:[NSNumber numberWithInteger:meshNodeInfo.nIdx]];
 
-		// Add node alpha
-		SPODMaterial & materialInfo = _podScene->pMaterial[meshNodeInfo.nIdxMaterial];
-		node.alpha = materialInfo.fMatOpacity;
-		node.transparent = node.alpha < 1.0 ? YES : NO;
+        if (material != nil) {
+            // Add node alpha
+            SPODMaterial & materialInfo = _podScene->pMaterial[meshNodeInfo.nIdxMaterial];
+            node.alpha = materialInfo.fMatOpacity;
+            node.transparent = node.alpha < 1.0 ? YES : NO;
+        } else {
+            node.isVisible = NO;
+            node.alpha = 1.0;
+            node.transparent = NO;
+        }
 
 		// Set the default node transformation
 		_podScene->SetFrame(0);
@@ -587,7 +649,7 @@
 	_buildMeshNodesComplete = YES;
 }
 
-- (void) buildBones {
+- (void)buildBones {
 	
 	// Get all bone node indexes from all meshes
 	NSMutableArray * meshBoneNodeIndexes = [[NSMutableArray alloc] init];
@@ -641,18 +703,16 @@
 	SPODNode & meshNodeInfo = _podScene->pNode[nodeId];
 	SPODMesh& meshInfo = _podScene->pMesh[meshId];
 			
-	//NSLog(@"Bulding animated mesh node: %s:", meshNodeInfo.pszName);
+	Isgl3dClassDebugLog2(Isgl3dLogLevelDebug, @"Bulding animated mesh node: %s:", meshNodeInfo.pszName);
 	
 	// Create new animted mesh node with default mesh and material
 	Isgl3dAnimatedMeshNode * animatedMeshNode = [Isgl3dAnimatedMeshNode nodeWithMesh:mesh andMaterial:material];
 	
-	//NSLog(@"Number of bones per vertex = %i", meshInfo.sBoneIdx.n);
 	[animatedMeshNode setNumberOfBonesPerVertex:meshInfo.sBoneIdx.n];
 	
 	// Get bone batches
 	CPVRTBoneBatches boneBatches = meshInfo.sBoneBatches;
 	int nBatches = boneBatches.nBatchCnt;
-	//NSLog(@"Number of batches = %i", nBatches);
 	for (int iBatch = 0; iBatch < nBatches; iBatch++) {
 		
 		// Get number of elements to draw for given batch an also the element offset 
@@ -671,7 +731,6 @@
 		[animatedMeshNode addBoneBatch:boneBatch];
 		
 		int numberOfBatchBones = boneBatches.pnBatchBoneCnt[iBatch];
-		//NSLog(@"Number of bones for batch %i = %i", iBatch, numberOfBatchBones);
 		
 		// Iterate over frames and get transformations for all bones 
 		for (int iFrame = 0; iFrame < _podScene->nNumFrame; iFrame++) {
@@ -713,14 +772,6 @@
 		Isgl3dGLVBOData * vboData = [[Isgl3dGLVBOData alloc] init];
 		vboData.stride = podData->sVertex.nStride;
 		
-//		NSLog(@"vertex stride = %i", podData->sVertex.nStride);
-//		NSLog(@"normal stride = %i", podData->sNormals.nStride);
-//		NSLog(@"uv stride = %i", podData->psUVW[0].nStride);
-		
-//		NSLog(@"vertex offset = %i", (int)(podData->sVertex.pData));
-//		NSLog(@"normal offset = %i", (int)(podData->sNormals.pData));
-//		NSLog(@"uv offset = %i", (int)(podData->psUVW[0].pData));
-		
 		vboData.positionOffset = (int)(podData->sVertex.pData);
 		vboData.normalOffset = (int)(podData->sNormals.pData);
 		if ((podData->nNumUVW)) {
@@ -749,7 +800,7 @@
 	}
 	
 	SPODNode & nodeInfo = _podScene->pNode[nodeId];
-	NSLog(@"Building bone %s (%i)", nodeInfo.pszName, nodeId);
+	Isgl3dClassDebugLog(Isgl3dLogLevelDebug, @"Building bone %s (%i)", nodeInfo.pszName, nodeId);
 
 	boneNode = [Isgl3dBoneNode boneNode];
 	[_indexedNodes setObject:boneNode forKey:[NSNumber numberWithInteger:nodeId]];

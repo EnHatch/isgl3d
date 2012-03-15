@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,13 +28,21 @@
 #import "Isgl3dDemoCameraController.h"
 
 
+@interface SkinningTestView ()
+@end
+
+
+#pragma mark -
 @implementation SkinningTestView
 
-- (id) init {
+- (id)init {
 	
-	if ((self = [super init])) {
+	if (self = [super init]) {
+        
+        Isgl3dNodeCamera *camera = (Isgl3dNodeCamera *)self.defaultCamera;
+        
 		// Create and configure touch-screen camera controller
-		_cameraController = [[Isgl3dDemoCameraController alloc] initWithCamera:self.camera andView:self];
+		_cameraController = [[Isgl3dDemoCameraController alloc] initWithNodeCamera:camera andView:self];
 		_cameraController.orbit = 400;
 		_cameraController.theta = 30;
 		_cameraController.phi = 30;
@@ -44,7 +52,7 @@
 		[Isgl3dDirector sharedInstance].shadowRenderingMethod = Isgl3dShadowPlanar;
 		[Isgl3dDirector sharedInstance].shadowAlpha = 0.4;
 
-		Isgl3dPODImporter * podImporter = [Isgl3dPODImporter podImporterWithFile:@"man.pod"];
+		Isgl3dPODImporter * podImporter = [Isgl3dPODImporter podImporterWithResource:@"man.pod"];
 		
 		// Modify texture files
 		[podImporter modifyTexture:@"body.bmp" withTexture:@"Body.pvr"];
@@ -53,7 +61,7 @@
 	
 		// Create skeleton node	
 		Isgl3dSkeletonNode * skeleton = [self.scene createSkeletonNode];
-		skeleton.position = iv3(0, -130, 0);
+		skeleton.position = Isgl3dVector3Make(0, -130, 0);
 		
 		// Add meshes to skeleton
 		[podImporter addMeshesToScene:skeleton];
@@ -69,12 +77,12 @@
 		Isgl3dTextureMaterial * groundMaterial = [Isgl3dTextureMaterial materialWithTextureFile:@"ground.png" shininess:0.9 precision:Isgl3dTexturePrecisionLow repeatX:NO repeatY:NO];
 		Isgl3dPlane * plane = [Isgl3dPlane meshWithGeometry:800.0 height:800.0 nx:2 ny:2];
 		Isgl3dMeshNode * ground = [self.scene createNodeWithMesh:plane andMaterial:groundMaterial];
-		ground.position = iv3(0, -130, -100);
+		ground.position = Isgl3dVector3Make(0, -130, -100);
 		ground.rotationX = -90;
 	
 		// Add light to scene and fix the Sphere01 mesh to it
 		Isgl3dShadowCastingLight * light  = [Isgl3dShadowCastingLight lightWithHexColor:@"FFFFFF" diffuseColor:@"FFFFFF" specularColor:@"FFFFFF" attenuation:0.00];
-		light.position = iv3(300, 600, 300);
+		light.position = Isgl3dVector3Make(300, 600, 300);
 		[self.scene addChild:light];
 		light.planarShadowsNode = ground;
 
@@ -86,25 +94,27 @@
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	[_cameraController release];
+    _cameraController = nil;
 
 	[_animationController release];
+    _animationController = nil;
 
 	[super dealloc];
 }
 
-- (void) onActivated {
+- (void)onActivated {
 	// Add camera controller to touch-screen manager
 	[[Isgl3dTouchScreen sharedInstance] addResponder:_cameraController];
 }
 
-- (void) onDeactivated {
+- (void)onDeactivated {
 	// Remove camera controller from touch-screen manager
 	[[Isgl3dTouchScreen sharedInstance] removeResponder:_cameraController];
 }
 
-- (void) tick:(float)dt {
+- (void)tick:(float)dt {
 	
 	// update camera
 	[_cameraController update];
@@ -122,12 +132,11 @@
  */
 @implementation AppDelegate
 
-- (void) createViews {
-	// Set the device orientation
-	[Isgl3dDirector sharedInstance].deviceOrientation = Isgl3dOrientationLandscapeLeft;
-
+- (void)createViews {
 	// Create view and add to Isgl3dDirector
-	Isgl3dView * view = [SkinningTestView view];
+	Isgl3dView *view = [SkinningTestView view];
+    view.displayFPS = YES;
+    
 	[[Isgl3dDirector sharedInstance] addView:view];
 }
 

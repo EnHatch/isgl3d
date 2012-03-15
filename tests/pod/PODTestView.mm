@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,19 +24,31 @@
  */
 
 #import "PODTestView.h"
-#include "Isgl3dPODImporter.h"
+#import "Isgl3dPODImporter.h"
 
+
+@interface PODTestView ()
+@end
+
+
+#pragma mark -
 @implementation PODTestView
 
-- (id) init {
++ (id<Isgl3dCamera>)createDefaultSceneCameraForViewport:(CGRect)viewport {
+    return nil;
+}
+
+
+#pragma mark -
+- (id)init {
 	
-	if ((self = [super init])) {
+	if (self = [super init]) {
 
 		// Enable shadow rendering
 		[Isgl3dDirector sharedInstance].shadowRenderingMethod = Isgl3dShadowPlanar;
 		[Isgl3dDirector sharedInstance].shadowAlpha = 0.5;
 
-		Isgl3dPODImporter * podImporter = [Isgl3dPODImporter podImporterWithFile:@"Scene_float.pod"];
+		Isgl3dPODImporter * podImporter = [Isgl3dPODImporter podImporterWithResource:@"Scene_float.pod"];
 //		[podImporter printPODInfo];
 		
 		// Add all meshes in POD to scene
@@ -58,14 +70,18 @@
 		_teapot.enableShadowCasting = YES;
 	
 		light.planarShadowsNode = [podImporter meshNodeWithName:@"Plane01"];
-		light.planarShadowsNodeNormal = iv3(0, 1, 0);
+		light.planarShadowsNodeNormal = Isgl3dVector3Make(0, 1, 0);
 	
 		// Set the camera up as it has been saved in the POD
-		// Remove camera created in super, added from POD later
-		[self.camera removeFromParent];
-		self.camera = [podImporter cameraAtIndex:0];
-		[self.scene addChild:self.camera];
-		
+        // Make sure the view size is set properly
+        Isgl3dNodeCamera *nodeCamera = [podImporter cameraAtIndex:0];
+        CGSize viewSize = self.viewport.size;
+        [nodeCamera.lens viewSizeUpdated:viewSize];
+        
+		[self.scene addChild:nodeCamera];
+		_defaultCamera = nodeCamera;
+        [self addCamera:_defaultCamera setActive:YES];
+        
 		[self setSceneAmbient:[Isgl3dColorUtil rgbString:[podImporter ambientColor]]];
 		
 		// Schedule updates
@@ -75,12 +91,11 @@
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	[super dealloc];
 }
 
-
-- (void) tick:(float)dt {
+- (void)tick:(float)dt {
 	[_teapot setRotation:_angle += 1 x:0 y:1 z:0];
 }
 
@@ -96,12 +111,11 @@
  */
 @implementation AppDelegate
 
-- (void) createViews {
-	// Set the device orientation
-	[Isgl3dDirector sharedInstance].deviceOrientation = Isgl3dOrientationLandscapeLeft;
-
+- (void)createViews {
 	// Create view and add to Isgl3dDirector
-	Isgl3dView * view = [PODTestView view];
+	Isgl3dView *view = [PODTestView view];
+    view.displayFPS = YES;
+    
 	[[Isgl3dDirector sharedInstance] addView:view];
 }
 

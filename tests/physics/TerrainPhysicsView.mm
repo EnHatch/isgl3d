@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,23 +33,29 @@
 #include "btBox2dShape.h"
 #include "btHeightfieldTerrainShape.h"
 
+
 @interface TerrainPhysicsView ()
-- (void) createSphere;
-- (Isgl3dPhysicsObject3D *) createPhysicsObject:(Isgl3dMeshNode *)node shape:(btCollisionShape *)shape mass:(float)mass restitution:(float)restitution isFalling:(BOOL)isFalling;
-- (btCollisionShape *) createTerrainShapeFromFile:(NSString *)terrainDataFile width:(float)width depth:(float)depth nx:(unsigned int)nx ny:(unsigned int)ny channel:(unsigned int)channel height:(float)height;
-- (UIImage *) loadImage:(NSString *)path;
+- (void)createSphere;
+- (Isgl3dPhysicsObject3D *)createPhysicsObject:(Isgl3dMeshNode *)node shape:(btCollisionShape *)shape mass:(float)mass restitution:(float)restitution isFalling:(BOOL)isFalling;
+- (btCollisionShape *)createTerrainShapeFromFile:(NSString *)terrainDataFile width:(float)width depth:(float)depth nx:(unsigned int)nx ny:(unsigned int)ny channel:(unsigned int)channel height:(float)height;
+- (UIImage *)loadImage:(NSString *)path;
 @end
 
+
+#pragma mark -
 @implementation TerrainPhysicsView
 
-- (id) init {
+- (id)init {
 	
-	if ((self = [super init])) {
+	if (self = [super init]) {
+        
 		_physicsObjects = [[NSMutableArray alloc] init];
 		_timeInterval = 0;
 		
 		// Create and configure touch-screen camera controller
-		_cameraController = [[Isgl3dDemoCameraController alloc] initWithCamera:self.camera andView:self];
+        Isgl3dNodeCamera *camera = (Isgl3dNodeCamera *)self.defaultCamera;
+
+		_cameraController = [[Isgl3dDemoCameraController alloc] initWithNodeCamera:camera andView:self];
 		_cameraController.orbit = 40;
 		_cameraController.theta = 30;
 		_cameraController.phi = 10;
@@ -96,6 +102,7 @@
 
 - (void) dealloc {
 	[_cameraController release];
+    _cameraController = nil;
 	
 	delete _discreteDynamicsWorld;
 	delete _collisionConfig;
@@ -106,10 +113,15 @@
 	free(_terrainHeightData);
 	
 	[_physicsObjects release];
+    _physicsObjects = nil;
 	[_physicsWorld release];
+    _physicsWorld = nil;
 	[_beachBallMaterial release];
+    _beachBallMaterial = nil;
 	[_sphereMesh release];
+    _sphereMesh = nil;
 	[_spheresNode release];
+    _spheresNode = nil;
 
 	[super dealloc];
 }
@@ -268,11 +280,9 @@
 @implementation AppDelegate
 
 - (void) createViews {
-	// Set the device orientation
-	[Isgl3dDirector sharedInstance].deviceOrientation = Isgl3dOrientationLandscapeLeft;
-
 	// Create view and add to Isgl3dDirector
-	Isgl3dView * view = [TerrainPhysicsView view];
+	Isgl3dView *view = [TerrainPhysicsView view];
+    view.displayFPS = YES;
 	[[Isgl3dDirector sharedInstance] addView:view];
 }
 

@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -24,10 +24,11 @@
  */
 
 #import "Isgl3dEAGLView.h"
-#import "v2.0/Isgl3dGLContext2.h"
-#import "v1.1/Isgl3dGLContext1.h"
+#import "Isgl3dGLContext2.h"
+#import "Isgl3dGLContext1.h"
 #import "Isgl3dDirector.h"
 #import "Isgl3dLog.h"
+
 
 @interface Isgl3dEAGLView ()
 - (BOOL) initContextForOpenGLES1;
@@ -36,33 +37,36 @@
 - (BOOL) initContextFromPlist;
 @end
 
+
 @implementation Isgl3dEAGLView
 
+@synthesize drawableHeight = _drawableHeight;
+@synthesize drawableWidth = _drawableWidth;
 @synthesize isgl3dTouchDelegate = _touchDelegate;
 
 + (Class) layerClass {
     return [CAEAGLLayer class];
 }
 
-+ (id) viewWithFrame:(CGRect)frame {
++ (id)viewWithFrame:(CGRect)frame {
 	return [[[self alloc] initWithFrame:frame] autorelease];
 }
 
-+ (id) viewWithFrameFromPlist:(CGRect)frame {
++ (id)viewWithFrameFromPlist:(CGRect)frame {
 	return [[[self alloc] initWithFrameFromPlist:frame] autorelease];
 }
 
-+ (id) viewWithFrameForES1:(CGRect)frame {
++ (id)viewWithFrameForES1:(CGRect)frame {
 	return [[[self alloc] initWithFrameForES1:frame] autorelease];
 }
 
-+ (id) viewWithFrameForES2:(CGRect)frame {
++ (id)viewWithFrameForES2:(CGRect)frame {
 	return [[[self alloc] initWithFrameForES2:frame] autorelease];
 }
 
 
 
-- (id) initWithFrame:(CGRect)frame {
+- (id)initWithFrame:(CGRect)frame {
 	
 	if ((self = [super initWithFrame:frame])) {
 		
@@ -75,7 +79,7 @@
 	return self;
 }
 
-- (id) initWithFrameFromPlist:(CGRect)frame {
+- (id)initWithFrameFromPlist:(CGRect)frame {
 	
 	if ((self = [super initWithFrame:frame])) {
 		
@@ -88,7 +92,7 @@
 	return self;
 }
 
-- (id) initWithFrameForES1:(CGRect)frame {
+- (id)initWithFrameForES1:(CGRect)frame {
 	
 	if ((self = [super initWithFrame:frame])) {
 		
@@ -101,7 +105,7 @@
 	return self;
 }
 
-- (id) initWithFrameForES2:(CGRect)frame {
+- (id)initWithFrameForES2:(CGRect)frame {
 	
 	if ((self = [super initWithFrame:frame])) {
 		
@@ -114,7 +118,7 @@
 	return self;
 }
 
-- (id) initWithCoder:(NSCoder*)coder {    
+- (id)initWithCoder:(NSCoder*)coder {    
     if ((self = [super initWithCoder:coder])) {
 		
 		if (![self initContextFromPlist]) {
@@ -126,7 +130,7 @@
     return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	if (_glContext) {
 	    [_glContext release];
 	}
@@ -138,20 +142,17 @@
 	CAEAGLLayer *eaglLayer = (CAEAGLLayer *)self.layer;
 
 	eaglLayer.opaque = TRUE;
-	eaglLayer.drawableProperties = [NSDictionary dictionaryWithObjectsAndKeys:[	NSNumber numberWithBool:FALSE], 
-																				kEAGLDrawablePropertyRetainedBacking, 
-																				kEAGLColorFormatRGBA8, 
-																				kEAGLDrawablePropertyColorFormat, 
-																				nil];
+	eaglLayer.drawableProperties = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO], kEAGLDrawablePropertyRetainedBacking, 
+                                    kEAGLColorFormatRGBA8, kEAGLDrawablePropertyColorFormat, nil];
 
 	_glContext = [[Isgl3dGLContext1 alloc] initWithLayer:eaglLayer];
 	if (_glContext) {
 		[self setMultipleTouchEnabled:YES];
 		
-		_size.width = [_glContext backingWidth];
-		_size.height = [_glContext backingHeight];
+        _drawableWidth = [_glContext backingWidth];
+        _drawableHeight = [_glContext backingHeight];
 		
-		Isgl3dLog(Info, @"Isgl3dEAGLView : GLContext for OpenGL ES 1.X used.");
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"GLContext for OpenGL ES 1.X used.");
 		return YES;
 	}
 	return NO;
@@ -161,20 +162,17 @@
 	CAEAGLLayer *eaglLayer = (CAEAGLLayer *)self.layer;
 
 	eaglLayer.opaque = TRUE;
-	eaglLayer.drawableProperties = [NSDictionary dictionaryWithObjectsAndKeys:[	NSNumber numberWithBool:FALSE], 
-																				kEAGLDrawablePropertyRetainedBacking, 
-																				kEAGLColorFormatRGBA8, 
-																				kEAGLDrawablePropertyColorFormat, 
-																				nil];
+	eaglLayer.drawableProperties = [NSDictionary dictionaryWithObjectsAndKeys:[NSNumber numberWithBool:NO], kEAGLDrawablePropertyRetainedBacking,
+                                    kEAGLColorFormatRGBA8, kEAGLDrawablePropertyColorFormat, nil];
 
 	_glContext = [[Isgl3dGLContext2 alloc] initWithLayer:eaglLayer];
 	if (_glContext) {
 		[self setMultipleTouchEnabled:YES];
 		
-		_size.width = [_glContext backingWidth];
-		_size.height = [_glContext backingHeight];
+        _drawableWidth = [_glContext backingWidth];
+        _drawableHeight = [_glContext backingHeight];
 		
-		Isgl3dLog(Info, @"Isgl3dEAGLView : GLContext for OpenGL ES 2.X used.");
+		Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"GLContext for OpenGL ES 2.X used.");
 		return YES;
 	}
 	return NO;
@@ -204,12 +202,12 @@
 			return [self initContextForOpenGLES2];
 
 		} else {
-			Isgl3dLog(Warn, @"Isgl3dEAGLView : Got glcontextversion %i, which is not valid. Reverting to glContext1", glContextVersion);
+			Isgl3dClassDebugLog(Isgl3dLogLevelWarn, @"Got glcontextversion %i, which is not valid. Reverting to glContext1", glContextVersion);
 			return [self initContextForOpenGLES1];
 		}
 	}
 	
-	Isgl3dLog(Warn, @"Isgl3dEAGLView : glcontextversion not found in isgl3d.plist");
+	Isgl3dClassDebugLog(Isgl3dLogLevelWarn, @"glcontextversion not found in isgl3d.plist");
 	return [self initContextForLatestOpenGLES];
 	
 }
@@ -218,25 +216,25 @@
 	return [_glContext createRenderer];
 }
 
-- (void) prepareRender {
+- (void)prepareRender {
 	[_glContext prepareRender];
 }
 
-- (void) finalizeRender {
+- (void)finalizeRender {
 	[_glContext finalizeRender];
 }
 
 
-- (void) layoutSubviews {
+- (void)layoutSubviews {
 	CGRect bounds = self.bounds;
 	
-	if ((roundf(bounds.size.width) != _size.width) || (roundf(bounds.size.height) != _size.height)) {
+	if ((roundf(bounds.size.width) != _drawableWidth) || (roundf(bounds.size.height) != _drawableHeight)) {
 		[_glContext resizeFromLayer:(CAEAGLLayer*)self.layer];
 		
 		[[Isgl3dDirector sharedInstance] onResizeFromLayer];
 		
-		_size.width = [_glContext backingWidth];
-		_size.height = [_glContext backingHeight];
+        _drawableWidth = [_glContext backingWidth];
+        _drawableHeight = [_glContext backingHeight];
 	}
 }
 
@@ -288,6 +286,13 @@
 
 - (void)setMsaaEnabled:(BOOL)value {
     _glContext.msaaEnabled = value;
+}
+
+- (void)setContentScaleFactor:(CGFloat)contentScaleFactor {
+    if (self.contentScaleFactor != contentScaleFactor) {
+        [super setContentScaleFactor:contentScaleFactor];
+        [_glContext resizeFromLayer:(CAEAGLLayer*)self.layer];
+    }
 }
 
 @end

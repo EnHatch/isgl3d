@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,13 +26,22 @@
 #import "PrimitivesDemoView.h"
 #import "Isgl3dDemoCameraController.h"
 
+
+@interface PrimitivesDemoView ()
+@end
+
+
+#pragma mark -
 @implementation PrimitivesDemoView
 
-- (id) init {
+- (id)init {
 	
-	if ((self = [super init])) {
+	if (self = [super init]) {
+        
+        Isgl3dNodeCamera *camera = (Isgl3dNodeCamera *)self.defaultCamera;
+        
 		// Create and configure touch-screen camera controller
-		_cameraController = [[Isgl3dDemoCameraController alloc] initWithCamera:self.camera andView:self];
+		_cameraController = [[Isgl3dDemoCameraController alloc] initWithNodeCamera:camera andView:self];
 		_cameraController.orbit = 17;
 		_cameraController.theta = 30;
 		_cameraController.phi = 10;
@@ -45,31 +54,31 @@
 	
 		Isgl3dTorus * torusMesh = [Isgl3dTorus meshWithGeometry:2 tubeRadius:1 ns:32 nt:32];
 		_torus = [_container createNodeWithMesh:torusMesh andMaterial:material];
-		_torus.position = iv3(-7, 0, 0);
+		_torus.position = Isgl3dVector3Make(-7, 0, 0);
 	
 		Isgl3dCone * coneMesh = [Isgl3dCone meshWithGeometry:4 topRadius:0 bottomRadius:2 ns:32 nt:32 openEnded:NO];
 		_cone = [_container createNodeWithMesh:coneMesh andMaterial:material];
-		_cone.position = iv3(7, 0, 0);
+		_cone.position = Isgl3dVector3Make(7, 0, 0);
 	
 		Isgl3dCylinder * cylinderMesh = [Isgl3dCylinder meshWithGeometry:4 radius:1 ns:32 nt:32 openEnded:NO];
 		_cylinder = [_container createNodeWithMesh:cylinderMesh andMaterial:material];
-		_cylinder.position = iv3(0, 0, -7);
+		_cylinder.position = Isgl3dVector3Make(0, 0, -7);
 	
 		Isgl3dArrow * arrowMesh = [Isgl3dArrow meshWithGeometry:4 radius:0.4 headHeight:1 headRadius:0.6 ns:32 nt:32];
 		_arrow = [_container createNodeWithMesh:arrowMesh andMaterial:material];
-		_arrow.position = iv3(0, 0, 7);
+		_arrow.position = Isgl3dVector3Make(0, 0, 7);
 		
 		Isgl3dOvoid * ovoidMesh = [Isgl3dOvoid meshWithGeometry:1.5 b:2 k:0.2 longs:32 lats:32];
 		_ovoid = [_container createNodeWithMesh:ovoidMesh andMaterial:material];
-		_ovoid.position = iv3(0, -4, 0);
+		_ovoid.position = Isgl3dVector3Make(0, -4, 0);
 		
 		Isgl3dGoursatSurface * gouratMesh = [Isgl3dGoursatSurface meshWithGeometry:0 b:0 c:-1 width:2 height:3 depth:2 longs:8 lats:16];
 		_gourat = [_container createNodeWithMesh:gouratMesh andMaterial:material];
-		_gourat.position = iv3(0, 4, 0);
+		_gourat.position = Isgl3dVector3Make(0, 4, 0);
 		
 		// Add light
 		Isgl3dLight * light  = [Isgl3dLight lightWithHexColor:@"FFFFFF" diffuseColor:@"FFFFFF" specularColor:@"FFFFFF" attenuation:0.005];
-		light.position = iv3(5, 15, 15);
+		light.position = Isgl3dVector3Make(5, 15, 15);
 		[self.scene addChild:light];
 		
 		// Schedule updates
@@ -79,23 +88,27 @@
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
+    [_container release];
+    _container = nil;
+    
 	[_cameraController release];
+    _cameraController = nil;
 
 	[super dealloc];
 }
 
-- (void) onActivated {
+- (void)onActivated {
 	// Add camera controller to touch-screen manager
 	[[Isgl3dTouchScreen sharedInstance] addResponder:_cameraController];
 }
 
-- (void) onDeactivated {
+- (void)onDeactivated {
 	// Remove camera controller from touch-screen manager
 	[[Isgl3dTouchScreen sharedInstance] removeResponder:_cameraController];
 }
 
-- (void) tick:(float)dt {
+- (void)tick:(float)dt {
 	_containerRotation += 0.2;
 	
 	_container.rotationY = _containerRotation;
@@ -121,12 +134,11 @@
  */
 @implementation AppDelegate
 
-- (void) createViews {
-	// Set the device orientation
-	[Isgl3dDirector sharedInstance].deviceOrientation = Isgl3dOrientationLandscapeLeft;
-
+- (void)createViews {
 	// Create view and add to Isgl3dDirector
-	Isgl3dView * view = [PrimitivesDemoView view];
+	Isgl3dView *view = [PrimitivesDemoView view];
+    view.displayFPS = YES;
+    
 	[[Isgl3dDirector sharedInstance] addView:view];
 }
 

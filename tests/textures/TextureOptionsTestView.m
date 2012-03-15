@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,12 +25,17 @@
 
 #import "TextureOptionsTestView.h"
 
+@interface TextureOptionsTestView ()
+@end
+
+
+#pragma mark -
 @implementation TextureOptionsTestView
 
-- (id) init {
+- (id)init {
 	
-	if ((self = [super init])) {
-
+	if (self = [super init]) {
+        
 		_planeAngle = 0;
 		_cameraDistanceAngle = 0;
 
@@ -41,11 +46,11 @@
 		
 		_plane1 = [self.scene createNodeWithMesh:planeMesh andMaterial:textureMaterial];
 		_plane1.rotationX = -90;
-		_plane1.position = iv3(0, -0.5, 0);
+		_plane1.position = Isgl3dVector3Make(0, -0.5, 0);
 	
 		_plane2 = [self.scene createNodeWithMesh:planeMesh andMaterial:textureMaterial2];
 		_plane2.rotationX = 90;
-		_plane2.position = iv3(0, 0.5, 0);
+		_plane2.position = Isgl3dVector3Make(0, 0.5, 0);
 		
 		// Schedule updates
 		[self schedule:@selector(tick:)];
@@ -58,7 +63,6 @@
 
 	[super dealloc];
 }
-
 
 - (void) tick:(float)dt {
 	_planeAngle += 1;
@@ -73,7 +77,9 @@
 
 	[_plane1 rotate:0.3 x:0 y:1 z:0];	
 	[_plane2 rotate:0.3 x:0 y:1 z:0];
-	[self.camera setPositionValues:0 y:0.15 * sin(_cameraDistanceAngle * M_PI / 90) z:2 + 1.9 * sin(_cameraDistanceAngle * M_PI / 180)];
+	
+    Isgl3dNodeCamera *nodeCamera = (Isgl3dNodeCamera *)self.defaultCamera;
+    [nodeCamera setPositionValues:0 y:0.15 * sin(_cameraDistanceAngle * M_PI / 90) z:2 + 1.9 * sin(_cameraDistanceAngle * M_PI / 180)];
 	
 }
 
@@ -89,11 +95,10 @@
 @implementation AppDelegate
 
 - (void) createViews {
-	// Set the device orientation
-	[Isgl3dDirector sharedInstance].deviceOrientation = Isgl3dOrientationLandscapeLeft;
-
 	// Create view and add to Isgl3dDirector
-	Isgl3dView * view = [TextureOptionsTestView view];
+	Isgl3dView *view = [TextureOptionsTestView view];
+    view.displayFPS = YES;
+    
 	[[Isgl3dDirector sharedInstance] addView:view];
 }
 

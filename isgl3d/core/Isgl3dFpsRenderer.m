@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,14 +28,27 @@
 #import "Isgl3dGLU.h"
 #import "Isgl3dDirector.h"
 #import "Isgl3dGLRenderer.h"
+#import "Isgl3dMatrix4.h"
+#import "Isgl3dOverlayCamera.h"
 
+
+@interface Isgl3dFpsRenderer () {
+@private
+	Isgl3dGLUILabel * _fpsLabel;
+	int _displayCounter;
+	float _deltaTimes[ISGL3D_FPS_N_TICKS];
+	float _fps;
+	unsigned long _tickIndex;
+}
+@end
+
+
+#pragma mark -
 @implementation Isgl3dFpsRenderer 
 
-- (id) initWithOrientation:(isgl3dOrientation)orientation {
-	if ((self = [super init])) {
+- (id)init {
+	if (self = [super init]) {
 
-		_orientation = orientation;
-		
 		// Initialise fps calculation
 		_displayCounter = 0;
 		_tickIndex = 0;
@@ -47,44 +60,18 @@
 		_fpsLabel = [[Isgl3dGLUILabel alloc] initWithText:@"0.0" fontName:@"Helvetica" fontSize:24];
 		[_fpsLabel setX:8 andY:8];
 		_fpsLabel.transparent = YES;
-
-		// Get viewport from director
-		_viewportInPixels = [Isgl3dDirector sharedInstance].windowRectInPixels;
-		
-		// Create view and projection matrices
-		_viewMatrix = [Isgl3dGLU lookAt:0 eyey:0 eyez:1 centerx:0 centery:0 centerz:0 upx:0 upy:1 upz:1];
-		_projectionMatrix = [Isgl3dGLU ortho:0 right:_viewportInPixels.size.width bottom:0 top:_viewportInPixels.size.height near:1 far:1000 zoom:1 orientation:orientation];
-		
 	}
     return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	[_fpsLabel release];
+    _fpsLabel = nil;
 
 	[super dealloc];
 }
 
-- (isgl3dOrientation)orientation {
-	return _orientation;
-}
-
-- (void) setOrientation:(isgl3dOrientation)orientation {
-	
-	// Update projection matrix
-	_orientation = orientation;
-	_projectionMatrix = [Isgl3dGLU ortho:0 right:_viewportInPixels.size.width bottom:0 top:_viewportInPixels.size.height near:1 far:1000 zoom:1 orientation:orientation];
-}
-
-- (void) updateViewport {
-	// Get viewport from director
-	_viewportInPixels = [Isgl3dDirector sharedInstance].windowRectInPixels;
-	
-	// Update projection matrix
-	_projectionMatrix = [Isgl3dGLU ortho:0 right:_viewportInPixels.size.width bottom:0 top:_viewportInPixels.size.height near:1 far:1000 zoom:1 orientation:_orientation];
-}
-
-- (void) update:(float)dt andRender:(Isgl3dGLRenderer *)renderer isPaused:(BOOL)isPaused {
+- (void)update:(float)dt andRender:(Isgl3dGLRenderer *)renderer overlayCamera:(Isgl3dOverlayCamera *)overlayCamera isPaused:(BOOL)isPaused {
 
 	if (!isPaused) {
 		// Update fps calculation
@@ -123,14 +110,17 @@
 	[_fpsLabel updateWorldTransformation:nil];
 	
 	// Clear the depth buffer
-	[renderer clear:(ISGL3D_DEPTH_BUFFER_BIT) viewport:_viewportInPixels];
+	[renderer clear:(ISGL3D_DEPTH_BUFFER_BIT) viewport:overlayCamera.viewport];
 
 	// Cleanup from last render
 	[renderer clean];
 
 	// Set view and projection matrices
-	[renderer setProjectionMatrix:&_projectionMatrix];
-	[renderer setViewMatrix:&_viewMatrix];
+    Isgl3dMatrix4 projectionMatrix = overlayCamera.projectionMatrix;
+    Isgl3dMatrix4 viewMatrix = overlayCamera.viewMatrix;
+    
+	[renderer setProjectionMatrix:&projectionMatrix];
+	[renderer setViewMatrix:&viewMatrix];
 
 	// Render label
 	[_fpsLabel render:renderer opaque:NO];

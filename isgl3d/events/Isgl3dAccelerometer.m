@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,31 +29,38 @@
 
 static Isgl3dAccelerometer * _instance = nil;
 
+
 @interface Isgl3dAccelerometer ()
-- (void) calculateGravity;
-- (void) calibrateTilt;
+@property (nonatomic,readonly) UIDeviceOrientation deviceOrientation;
+- (void)calculateGravity;
+- (void)calibrateTilt;
 @end
 
+
+#pragma mark -
 @implementation Isgl3dAccelerometer
 
 @synthesize deviceOrientation = _deviceOrientation;
 @synthesize isCalibrating = _isCalibrating;
 @synthesize tiltCutoff = _tiltCutoff;
 
-- (id) init {
+- (id)init {
 
-	if ((self = [super init])) {
+	if (self = [super init]) {
 		_updateFrequency = 30;
 		
 		_isCalibrating = NO;
 		_tiltActive = NO;
 		_tiltCutoff = 0;
+        
+        [[UIDevice currentDevice] beginGeneratingDeviceOrientationNotifications];
 	}
 	
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
+    [[UIDevice currentDevice] endGeneratingDeviceOrientationNotifications];
 	
     [super dealloc];
 }
@@ -76,7 +83,7 @@ static Isgl3dAccelerometer * _instance = nil;
 	}
 }
 
-- (void) setup:(float)updateFrequency {
+- (void)setup:(float)updateFrequency {
 	//Configure and start accelerometer
 	[[UIAccelerometer sharedAccelerometer] setUpdateInterval:(1.0 / updateFrequency)];
 	[[UIAccelerometer sharedAccelerometer] setDelegate:self];
@@ -84,46 +91,48 @@ static Isgl3dAccelerometer * _instance = nil;
 	_updateFrequency = updateFrequency;
 }
 
-- (void) setUpdateFrequency:(float)updateFrequency {
+- (void)setUpdateFrequency:(float)updateFrequency {
 	[[UIAccelerometer sharedAccelerometer] setUpdateInterval:(1.0 / updateFrequency)];
 	_updateFrequency = updateFrequency;
 }
 
-- (float) updateFrequency {
+- (float)updateFrequency {
 	return _updateFrequency;
 }
 
-- (float *) gravity {
+- (float *)gravity {
 	return _gravity;
 }
 
-- (float *) rawGravity {
+- (float *)rawGravity {
 	return _rawGravity;
 }
 
-- (float *) acceleration {
+- (float *)acceleration {
 	return _acceleration;
 }
 
-- (void) accelerometer:(UIAccelerometer*)accelerometer didAccelerate:(UIAcceleration*)acceleration {
+- (void)accelerometer:(UIAccelerometer*)accelerometer didAccelerate:(UIAcceleration*)acceleration {
 
+    UIDeviceOrientation deviceOrientation = self.deviceOrientation;
+    
 	// Store raw data, modified with device rotation
-	if (_deviceOrientation == Isgl3dOrientation0) {
+	if (deviceOrientation == UIDeviceOrientationPortrait) {
 	    _acceleration[0] = acceleration.x;
 	    _acceleration[1] = acceleration.y;
 	    _acceleration[2] = acceleration.z;
 		
-	} else if (_deviceOrientation == Isgl3dOrientation90Clockwise) {
+	} else if (deviceOrientation == UIDeviceOrientationLandscapeRight) {
 	    _acceleration[0] = acceleration.y;
 	    _acceleration[1] = -acceleration.x;
 	    _acceleration[2] = acceleration.z;
 		
-	} else if (_deviceOrientation == Isgl3dOrientation180) {
+	} else if (deviceOrientation == UIDeviceOrientationPortraitUpsideDown) {
 	    _acceleration[0] = -acceleration.x;
 	    _acceleration[1] = -acceleration.y;
 	    _acceleration[2] = acceleration.z;
 		
-	} else if (_deviceOrientation == Isgl3dOrientation90CounterClockwise) {
+	} else if (deviceOrientation == UIDeviceOrientationLandscapeLeft) {
 	    _acceleration[0] = -acceleration.y;
 	    _acceleration[1] = acceleration.x;
 	    _acceleration[2] = acceleration.z;
@@ -131,7 +140,7 @@ static Isgl3dAccelerometer * _instance = nil;
 
 
 	if (_isCalibrating) {
-		// normalise gravity
+		// normalize gravity
 		float length = sqrtf(_acceleration[0] * _acceleration[0] + _acceleration[1] * _acceleration[1] + _acceleration[2] * _acceleration[2]);
 	    _acceleration[0] /= length;
 	    _acceleration[1] /= length;
@@ -144,7 +153,7 @@ static Isgl3dAccelerometer * _instance = nil;
 		// Calculate gravity first...
 		[self calculateGravity];
 
-		// ... then normalise gravity
+		// ... then normalize gravity
 		float length = sqrtf(_acceleration[0] * _acceleration[0] + _acceleration[1] * _acceleration[1] + _acceleration[2] * _acceleration[2]);
 	    _acceleration[0] /= length;
 	    _acceleration[1] /= length;
@@ -153,13 +162,13 @@ static Isgl3dAccelerometer * _instance = nil;
 	
 }
 
-- (void) startTiltCalibration {
+- (void)startTiltCalibration {
 	_calibrationSampleNumber = 0;
 	_isCalibrating = YES;
 }
 
 
-- (void) calculateGravity {
+- (void)calculateGravity {
 
     _rawGravity[0] = (_acceleration[0] * LOWPASS_FILTER_VALUE) + _rawGravity[0] * (1.0 - LOWPASS_FILTER_VALUE);
     _rawGravity[1] = (_acceleration[1] * LOWPASS_FILTER_VALUE) + _rawGravity[1] * (1.0 - LOWPASS_FILTER_VALUE);
@@ -183,7 +192,7 @@ static Isgl3dAccelerometer * _instance = nil;
 
 }
 
-- (void) calibrateTilt {
+- (void)calibrateTilt {
 	_calibrationY[_calibrationSampleNumber] = _acceleration[1];
 	_calibrationZ[_calibrationSampleNumber] = _acceleration[2];
 
@@ -211,14 +220,14 @@ static Isgl3dAccelerometer * _instance = nil;
 	}
 }
 
-- (float) tiltAngle {
+- (float)tiltAngle {
 	if (_isCalibrating) {
 		return 0;
 	}
 	return acos(-_rawGravity[2]);
 }
 
-- (float) rotationAngle {
+- (float)rotationAngle {
 	if (_isCalibrating) {
 		return 0;
 	}
@@ -228,6 +237,12 @@ static Isgl3dAccelerometer * _instance = nil;
 	} else {
 		return atan2(_rawGravity[0], -_rawGravity[1]);
 	}
+}
+
+
+#pragma mark -
+- (UIDeviceOrientation)deviceOrientation {
+    return [UIDevice currentDevice].orientation;
 }
 
 @end

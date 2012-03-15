@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,24 +27,38 @@
 #import "Isgl3dGLProgram.h"
 #import "Isgl3dGLMesh.h"
 #import "Isgl3dGLVBOData.h"
+#import "Isgl3dGLContext2.h"
+
 
 @implementation Isgl3dShadowMapShader
 
-- (id) initWithVsPreProcHeader:(NSString *)vsPreProcHeader fsPreProcHeader:(NSString *)fsPreProcHeader {
+- (id)initWithVsPreProcHeader:(NSString *)vsPreProcHeader fsPreProcHeader:(NSString *)fsPreProcHeader {
 	
-	if ((self = [super initWithVertexShaderName:@"shadowMap.vsh" fragmentShaderName:@"shadowMap.fsh" vsPreProcHeader:vsPreProcHeader fsPreProcHeader:fsPreProcHeader])) {
+    NSString *vertexShaderResource;
+    NSString *fragmentShaderResource;
+    
+	if ([Isgl3dGLContext2 openGLExtensionSupported:@"GL_OES_depth_texture"]) {
+        vertexShaderResource = @"shadowMapDepth.vsh";
+        fragmentShaderResource = @"shadowMapDepth.fsh";
+    } else {
+        vertexShaderResource = @"shadowMap.vsh";
+        fragmentShaderResource = @"shadowMap.fsh";
+    }
+        
+	if (self = [super initWithVertexShaderName:vertexShaderResource fragmentShaderName:fragmentShaderResource
+                               vsPreProcHeader:vsPreProcHeader fsPreProcHeader:fsPreProcHeader]) {
 	}
 	
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 
 	[super dealloc];
 }
 
 
-- (void) getAttributeAndUniformLocations {
+- (void)getAttributeAndUniformLocations {
 
 	// Get attribute locations
 	_vertexAttributeLocation = [_glProgram getAttributeLocation:@"a_vertex"];
@@ -59,11 +73,11 @@
 	_boneMatrixArrayUniformLocation = [_glProgram getUniformLocation:@"u_boneMatrixArray[0]"];
 }
 
-- (void) setModelViewProjectionMatrix:(Isgl3dMatrix4 *)modelViewProjectionMatrix {
+- (void)setModelViewProjectionMatrix:(Isgl3dMatrix4 *)modelViewProjectionMatrix {
 	[self setUniformMatrix4:_mvpMatrixUniformLocation matrix:modelViewProjectionMatrix];
 }
 
-- (void) setVBOData:(Isgl3dGLVBOData *)vboData {
+- (void)setVBOData:(Isgl3dGLVBOData *)vboData {
 	[self setVertexAttribute:GL_FLOAT attributeLocation:_vertexAttributeLocation size:VBO_POSITION_SIZE strideBytes:vboData.stride offset:vboData.positionOffset];
 	if (vboData.boneIndexOffset != -1) {
 		[self setVertexAttribute:GL_UNSIGNED_BYTE attributeLocation:_boneIndexAttributeLocation size:vboData.boneIndexSize strideBytes:vboData.stride offset:vboData.boneIndexOffset];
@@ -71,18 +85,18 @@
 	}
 }
 
-- (void) render:(unsigned int)numberOfElements atOffset:(unsigned int)elementOffset {
+- (void)render:(unsigned int)numberOfElements atOffset:(unsigned int)elementOffset {
 	// render elements
 	glDrawElements(GL_TRIANGLES, numberOfElements, GL_UNSIGNED_SHORT, &((unsigned short*)0)[elementOffset]);
 
 }
 
 
-- (void) setBoneTransformations:(Isgl3dArray *)transformations andInverseTransformations:(Isgl3dArray *)inverseTransformations {
+- (void)setBoneTransformations:(Isgl3dArray *)transformations andInverseTransformations:(Isgl3dArray *)inverseTransformations {
 	[self setUniformMatrix4:_boneMatrixArrayUniformLocation matrix:transformations size:8];
 }
 
-- (void) setNumberOfBonesPerVertex:(unsigned int)numberOfBonesPerVertex {
+- (void)setNumberOfBonesPerVertex:(unsigned int)numberOfBonesPerVertex {
 	[self setUniform1i:_boneCountUniformLocation value:numberOfBonesPerVertex];
 }
 

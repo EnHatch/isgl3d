@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,17 +26,24 @@
 #import "ParticleGeneratorDemoView.h"
 #import "Isgl3dDemoCameraController.h"
 
+
+@interface ParticleGeneratorDemoView ()
+@end
+
+
 @implementation ParticleGeneratorDemoView
 
-- (id) init {
+- (id)init {
 	
-	if ((self = [super init])) {
+	if (self = [super init]) {
 
+        Isgl3dNodeCamera *camera = (Isgl3dNodeCamera *)self.defaultCamera;
+        
 		// Enable zsorting
 		self.zSortingEnabled = YES;
 
 		// Create and configure touch-screen camera controller
-		_cameraController = [[Isgl3dDemoCameraController alloc] initWithCamera:self.camera andView:self];
+		_cameraController = [[Isgl3dDemoCameraController alloc] initWithNodeCamera:camera andView:self];
 		_cameraController.orbit = 14;
 		_cameraController.theta = 30;
 		_cameraController.phi = 30;
@@ -71,31 +78,33 @@
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	[_cameraController release];
+    _cameraController = nil;
 
 	[_fountainParticleGenerator stopAnimation];
 	[_fountainParticleGenerator release];
+    _fountainParticleGenerator = nil;
 
 	[super dealloc];
 }
 
-- (void) objectTouched:(Isgl3dEvent3D *)event {
-	NSLog(@"particles touched %i", [event.touches count]);
+- (void)objectTouched:(Isgl3dEvent3D *)event {
+	Isgl3dClassDebugLog2(Isgl3dLogLevelInfo, @"particles touched %i", [event.touches count]);
 }
 
 
-- (void) onActivated {
+- (void)onActivated {
 	// Add camera controller to touch-screen manager
 	[[Isgl3dTouchScreen sharedInstance] addResponder:_cameraController];
 }
 
-- (void) onDeactivated {
+- (void)onDeactivated {
 	// Remove camera controller from touch-screen manager
 	[[Isgl3dTouchScreen sharedInstance] removeResponder:_cameraController];
 }
 
-- (void) tick:(float)dt {
+- (void)tick:(float)dt {
 	
 	// update camera
 	[_cameraController update];
@@ -112,12 +121,11 @@
  */
 @implementation AppDelegate
 
-- (void) createViews {
-	// Set the device orientation
-	[Isgl3dDirector sharedInstance].deviceOrientation = Isgl3dOrientationLandscapeLeft;
-
+- (void)createViews {
 	// Create view and add to Isgl3dDirector
-	Isgl3dView * view = [ParticleGeneratorDemoView view];
+	Isgl3dView *view = [ParticleGeneratorDemoView view];
+    view.displayFPS = YES;
+    
 	[[Isgl3dDirector sharedInstance] addView:view];
 }
 

@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -59,7 +59,6 @@
 	float _acceleration[3];
 	
 	float _updateFrequency;
-	isgl3dOrientation _deviceOrientation;
 	
 	float _calibrationY[ACCELEROMETER_CALIBRATION_MAX];
 	float _calibrationZ[ACCELEROMETER_CALIBRATION_MAX];
@@ -82,22 +81,17 @@
  * Returns the gravity vector as a float array of three values. This vector takes into account any
  * tilt calibration that has been performed.
  */
-@property (nonatomic, readonly) float * gravity;
+@property (nonatomic, readonly) float *gravity;
 
 /**
  * Returns the raw gravity vector as a float array of three values without any tilt calibration.
  */
-@property (nonatomic, readonly) float * rawGravity;
+@property (nonatomic, readonly) float *rawGravity;
 
 /**
  * Returns the raw acceleration of the device.
  */
-@property (nonatomic, readonly) float * acceleration;
-
-/**
- * Specified whether the orientation of the device - this changes the axes of the acceleration and gravity.
- */
-@property (nonatomic) isgl3dOrientation deviceOrientation;
+@property (nonatomic, readonly) float *acceleration;
 
 /**
  * Returns true if the the tilt of the device is being measured and the gravity vector
@@ -117,7 +111,7 @@
  * Returns the singleton instance of the Isgl3dAccelerometer.
  * @return The singleton instance of the Isgl3dAccelerometer.
  */
-+ (Isgl3dAccelerometer *) sharedInstance;
++ (Isgl3dAccelerometer *)sharedInstance;
 
 /**
  * Resets the singleton instance of the Isgl3dAccelerometer. All values return to their defaults.
@@ -130,30 +124,30 @@
  * @param updateFrequency The frequency at which the acceleration should be recalculated. The default is 
  * for 30 times a second.
  */
-- (void) setup:(float) updateFrequency;
+- (void)setup:(float)updateFrequency;
 
 /**
  * Starts the tilt calibration. This lasts for 20 cycles, after which the gravity vector is modified. The rawGravity
  * vector always contains the gravity as determined by the device.
  */
-- (void) startTiltCalibration;
+- (void)startTiltCalibration;
 
 /**
  * Returns the rotation angle (angle about the z-axis) of the device. If a tiltCutoff has been specified and the current
  * tilt angle is less than this, then the rotation angle is returned as 0.
  * @return the rotation angle in degrees.
  */
-- (float) rotationAngle;
+- (float)rotationAngle;
 
 /**
  * Returns the tilt angle (angle about the x-axis) of the device.
  * @return the tilt angle in degrees.
  */
-- (float) tiltAngle;
+- (float)tiltAngle;
 
 /*
  * Implementation of the UIAccelerometerDelegate protocol. 
  */
-- (void) accelerometer:(UIAccelerometer*)accelerometer didAccelerate:(UIAcceleration*)acceleration;
+- (void)accelerometer:(UIAccelerometer*)accelerometer didAccelerate:(UIAcceleration*)acceleration;
 
 @end

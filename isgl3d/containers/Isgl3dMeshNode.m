@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,21 +30,24 @@
 #import "Isgl3dColorMaterial.h"
 #import "Isgl3dGLRenderer.h"
 #import "Isgl3dObject3DGrabber.h"
+#import "Isgl3dGLContext.h"
+
 
 @interface Isgl3dMeshNode (PrivateMethods)
-- (void) renderMesh:(Isgl3dGLRenderer *)renderer;
+- (void)renderMesh:(Isgl3dGLRenderer *)renderer;
 @end
 
 
+#pragma mark -
 @implementation Isgl3dMeshNode
 
 @synthesize doubleSided = _doubleSided;
 
-+ (id) nodeWithMesh:(Isgl3dGLMesh *)mesh andMaterial:(Isgl3dMaterial *)material {
++ (id)nodeWithMesh:(Isgl3dGLMesh *)mesh andMaterial:(Isgl3dMaterial *)material {
 	return [[[self alloc] initWithMesh:mesh andMaterial:material] autorelease];
 }
 
-- (id) initWithMesh:(Isgl3dGLMesh *)mesh andMaterial:(Isgl3dMaterial *)material {
+- (id)initWithMesh:(Isgl3dGLMesh *)mesh andMaterial:(Isgl3dMaterial *)material {
     if ((self = [super init])) {
 
     	_occlusionAlpha = 1.0;
@@ -66,14 +69,14 @@
     return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	[_mesh release];
 	[_material release];
 	
 	[super dealloc];
 }
 
-- (id) copyWithZone:(NSZone *)zone {
+- (id)copyWithZone:(NSZone *)zone {
 	Isgl3dMeshNode * copy = [super copyWithZone:zone];
 	
 	copy.mesh = _mesh;
@@ -89,7 +92,7 @@
 	return _mesh;
 }
 
-- (void) setMesh:(Isgl3dGLMesh *)mesh {
+- (void)setMesh:(Isgl3dGLMesh *)mesh {
 	if (mesh != _mesh) {
 		if (_mesh) {
 			[_mesh release];
@@ -106,7 +109,7 @@
 	return _material;
 }
 
-- (void) setMaterial:(Isgl3dMaterial *)material {
+- (void)setMaterial:(Isgl3dMaterial *)material {
 	if (material != _material) {
 		if (_material) {
 			[_material release];
@@ -119,19 +122,18 @@
 	}
 }
 
-- (void) occlusionTest:(Isgl3dVector3 *)eye normal:(Isgl3dVector3 *)normal targetDistance:(float)targetDistance maxAngle:(float)maxAngle {
+- (void)occlusionTest:(Isgl3dVector3 *)eye normal:(Isgl3dVector3 *)normal targetDistance:(float)targetDistance maxAngle:(float)maxAngle {
 	// Test for occlusion
 	
 	Isgl3dVector3 eyeToModel;
 	Isgl3dVector3 eyeToModelNormal;
 
-	iv3Fill(&eyeToModel, _worldTransformation.m30, _worldTransformation.m31, _worldTransformation.m32);
-	iv3Sub(&eyeToModel, eye);
+    eyeToModel = Isgl3dVector3Make(_worldTransformation.m30, _worldTransformation.m31, _worldTransformation.m32);
+    eyeToModel = Isgl3dVector3Subtract(eyeToModel, *eye);
 
-	iv3Copy(&eyeToModelNormal, &eyeToModel);
-	iv3Normalize(&eyeToModelNormal);
+    eyeToModelNormal = Isgl3dVector3Normalize(eyeToModel);
 	
-	float dot = iv3Dot(normal, &eyeToModelNormal);
+	float dot = Isgl3dVector3DotProduct(*normal, eyeToModelNormal);
 	float angle = acos(dot) * 180 / M_PI;
 	
 	
@@ -141,7 +143,7 @@
 	//            1 => at target
 	//        f > 1 => object behind target		
 	//        f < 0 => object behind camera		
-	float occlusionDistanceFactor = iv3Dot(normal, &eyeToModel) / targetDistance;
+	float occlusionDistanceFactor = Isgl3dVector3DotProduct(*normal, eyeToModelNormal) / targetDistance;
 	
 	// Calculate occlusion angle factor: 
 	//    0 < f < 1 => object between target and max angle
@@ -180,13 +182,13 @@
 	[super occlusionTest:eye normal:normal targetDistance:targetDistance maxAngle:maxAngle];
 }
 
-- (void) renderMesh:(Isgl3dGLRenderer *)renderer {
+- (void)renderMesh:(Isgl3dGLRenderer *)renderer {
 	[renderer onModelRenderReady];
 	[renderer render:Triangles withNumberOfElements:[_mesh numberOfElements] atOffset:0];
 	[renderer onModelRenderEnds];
 }
 
-- (void) render:(Isgl3dGLRenderer *)renderer opaque:(BOOL)opaque {
+- (void)render:(Isgl3dGLRenderer *)renderer opaque:(BOOL)opaque {
 	
 	BOOL goOn = YES;
 	if (opaque) {
@@ -206,7 +208,10 @@
 		// Set the renderer requirements
 		unsigned int rendererRequirements = _alphaCulling ? ALPHA_CULLING_ON : 0;
 		if (_enableShadowRendering && renderer.shadowMapActive) {
-			rendererRequirements |= SHADOW_MAPPING_ON;
+            if ([Isgl3dGLContext openGLExtensionSupported:@"GL_OES_depth_texture"])
+                rendererRequirements |= SHADOW_MAPPING_DEPTH_ON;
+            else
+                rendererRequirements |= SHADOW_MAPPING_ON;
 		}
 		if (_skinningEnabled) {
 			rendererRequirements |= SKINNING_ON;
@@ -252,7 +257,7 @@
 	[super render:renderer opaque:opaque];
 }
 
-- (void) renderForEventCapture:(Isgl3dGLRenderer *)renderer {
+- (void)renderForEventCapture:(Isgl3dGLRenderer *)renderer {
 
 	if (_mesh && _material && self.interactive) {
 		// Set the renderer requirements
@@ -292,7 +297,7 @@
 	[super renderForEventCapture:renderer];
 }
 
-- (void) renderForShadowMap:(Isgl3dGLRenderer *)renderer {
+- (void)renderForShadowMap:(Isgl3dGLRenderer *)renderer {
 
 	if (_enableShadowCasting && _mesh && _material) {
 		
@@ -330,7 +335,7 @@
 	[super renderForShadowMap:renderer];
 }
 
-- (void) renderForPlanarShadows:(Isgl3dGLRenderer *)renderer {
+- (void)renderForPlanarShadows:(Isgl3dGLRenderer *)renderer {
 
 	if (_enableShadowCasting && _mesh && _material) {
 		// calculate transparency
@@ -371,7 +376,7 @@
 	[super renderForPlanarShadows:renderer];
 }
 
-- (void) collectAlphaObjects:(NSMutableArray *)alphaObjects {
+- (void)collectAlphaObjects:(NSMutableArray *)alphaObjects {
 	if (_transparent || _occlusionAlpha < 1.0 || _alpha < 1.0) {
 		[alphaObjects addObject:self];
 	}

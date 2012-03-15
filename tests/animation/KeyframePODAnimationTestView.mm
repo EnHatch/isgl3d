@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -28,25 +28,30 @@
 #import "Isgl3dDemoCameraController.h"
 #import "Isgl3dPODImporter.h"
 
+
 @interface KeyframePODAnimationTestView ()
 - (Isgl3dGLMesh *) createNewMeshFromPODMesh:(Isgl3dGLMesh *)podMesh;
 @end
 
+
+#pragma mark -
 @implementation KeyframePODAnimationTestView
 
-- (id) init {
+- (id)init {
 	
 	if ((self = [super init])) {
-		
+
+        Isgl3dNodeCamera *camera = (Isgl3dNodeCamera *)self.defaultCamera;
+        
 		// Create and configure touch-screen camera controller
-		_cameraController = [[Isgl3dDemoCameraController alloc] initWithCamera:self.camera andView:self];
+		_cameraController = [[Isgl3dDemoCameraController alloc] initWithNodeCamera:camera andView:self];
 		_cameraController.orbit = 120;
 		_cameraController.theta = 0;
 		_cameraController.phi = 30;
 		_cameraController.doubleTapEnabled = NO;
 
 		// Import pod data
-		Isgl3dPODImporter * podImporter = [Isgl3dPODImporter podImporterWithFile:@"Scene_float.pod"];
+		Isgl3dPODImporter * podImporter = [Isgl3dPODImporter podImporterWithResource:@"Scene_float.pod"];
 		[podImporter buildSceneObjects];
 
 		// Get the teapot mesh (plus POD data has non-normalised normals) 
@@ -73,11 +78,11 @@
 		
 		// Create a node using keyframe mesh and material
 		Isgl3dNode * node = [self.scene createNodeWithMesh:_mesh andMaterial:material];
-		node.position = iv3(0, -20, 0);
+		node.position = Isgl3dVector3Make(0, -20, 0);
 
 		// Add light to scene
 		Isgl3dLight * light  = [Isgl3dLight lightWithHexColor:@"FFFFFF" diffuseColor:@"FFFFFF" specularColor:@"FFFFFF" attenuation:0.000];
-		light.position = iv3(100, 50, 20);
+		light.position = Isgl3dVector3Make(100, 50, 20);
 		[self.scene addChild:light];
 
 		// Schedule updates
@@ -87,24 +92,24 @@
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	[_cameraController release];
+    _cameraController = nil;
 
 	[super dealloc];
 }
 
-
-- (void) onActivated {
+- (void)onActivated {
 	// Add camera controller to touch-screen manager
 	[[Isgl3dTouchScreen sharedInstance] addResponder:_cameraController];
 }
 
-- (void) onDeactivated {
+- (void)onDeactivated {
 	// Remove camera controller from touch-screen manager
 	[[Isgl3dTouchScreen sharedInstance] removeResponder:_cameraController];
 }
 
-- (void) tick:(float)dt {
+- (void)tick:(float)dt {
 	// update camera
 	[_cameraController update];
 }
@@ -160,12 +165,10 @@
  */
 @implementation AppDelegate
 
-- (void) createViews {
-	// Set the device orientation
-	[Isgl3dDirector sharedInstance].deviceOrientation = Isgl3dOrientationLandscapeLeft;
-
+- (void)createViews {
 	// Create view and add to Isgl3dDirector
-	Isgl3dView * view = [KeyframePODAnimationTestView view];
+	Isgl3dView *view = [KeyframePODAnimationTestView view];
+    view.displayFPS = YES;
 	[[Isgl3dDirector sharedInstance] addView:view];
 }
 

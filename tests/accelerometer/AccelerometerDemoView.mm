@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,16 +31,20 @@
 #include "btBulletDynamicsCommon.h"
 #include <BulletCollision/CollisionShapes/btBox2dShape.h>
 
+
 @interface AccelerometerDemoView ()
-- (void) translateCamera:(float)phi;
+@property (nonatomic,readonly) Isgl3dNodeCamera *activeNodeCamera;
+- (void)translateCamera:(float)phi;
 - (Isgl3dPhysicsObject3D *) createPhysicsObject:(Isgl3dMeshNode *)node shape:(btCollisionShape *)shape mass:(float)mass restitution:(float)restitution;
 @end
 
+
+#pragma mark -
 @implementation AccelerometerDemoView
 
-- (id) init {
+- (id)init {
 	
-	if ((self = [super init])) {
+	if (self = [super init]) {
 
 		_pauseActive = NO;	 	
 		_theta = M_PI / 2;
@@ -69,7 +73,7 @@
 		Isgl3dTextureMaterial * beachBallMaterial = [Isgl3dTextureMaterial materialWithTextureFile:@"BeachBall.png" shininess:0.9 precision:Isgl3dTexturePrecisionMedium repeatX:NO repeatY:NO];
 		Isgl3dSphere * sphereMesh = [Isgl3dSphere meshWithGeometry:1 longs:16 lats:16];
 		Isgl3dMeshNode * sphereNode = [self.scene createNodeWithMesh:sphereMesh andMaterial:beachBallMaterial];
-		sphereNode.position = iv3(0, 3, 0);
+		sphereNode.position = Isgl3dVector3Make(0, 3, 0);
 		sphereNode.enableShadowCasting = YES;
 	
 		btCollisionShape * sphereShape = new btSphereShape(sphereMesh.radius);
@@ -80,14 +84,14 @@
 		Isgl3dPlane * plane = [Isgl3dPlane meshWithGeometry:100.0 height:100.0 nx:10 ny:10];
 		Isgl3dMeshNode * groundNode = [_physicsWorld createNodeWithMesh:plane andMaterial:woodMaterial];
 		groundNode.rotationX = -90;
-		groundNode.position = iv3(0, -2, 0);
+		groundNode.position = Isgl3dVector3Make(0, -2, 0);
 	
 		btCollisionShape* groundShape = new btBox2dShape(btVector3(50, 50, 0));
 		[self createPhysicsObject:groundNode shape:groundShape mass:0 restitution:0.6];
 		
 		// Add shadow casting light
 		Isgl3dShadowCastingLight * light  = [Isgl3dShadowCastingLight lightWithHexColor:@"FFFFFF" diffuseColor:@"FFFFFF" specularColor:@"FFFFFF" attenuation:0.001];
-		light.position = iv3(10, 20, 10);
+		light.position = Isgl3dVector3Make(10, 20, 10);
 		light.planarShadowsNode = groundNode;
 		[self.scene addChild:light];
 	
@@ -102,7 +106,7 @@
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	delete _discreteDynamicsWorld;
 	delete _collisionConfig;
 	delete _broadphase;
@@ -110,12 +114,16 @@
 	delete _constraintSolver;
 	
 	[_physicsWorld release];
+    _physicsWorld = nil;
 
 	[super dealloc];
 }
 
+- (Isgl3dNodeCamera *)activeNodeCamera {
+    return (Isgl3dNodeCamera *)self.activeCamera;
+}
 
-- (void) tick:(float)dt {
+- (void)tick:(float)dt {
 	if (_pauseActive) {
 		
 		// Move the camera if it is active
@@ -131,7 +139,7 @@
 
 		// Rotate gravity vector x-z components relative to camera horizontal angle
 		// (Accelerometer returns gravity relative to the device itself: needs to be converted to coordinates of camera)
-		float horizontalAngle = atan2(self.camera.viewMatrix.m02, self.camera.viewMatrix.m22);
+		float horizontalAngle = atan2(self.activeNodeCamera.viewMatrix.m02, self.activeNodeCamera.viewMatrix.m22);
 		float transformedGravity[3];
 		transformedGravity[0] =  cos(horizontalAngle) * gravityVector[0] + sin(horizontalAngle) * gravityVector[2];
 		transformedGravity[1] = gravityVector[1];
@@ -141,12 +149,12 @@
 	}
 }
 
-- (void) calibrateAccelerometer:(Isgl3dEvent3D *)event {
+- (void)calibrateAccelerometer:(Isgl3dEvent3D *)event {
 	// Calibrates the accelerometer tilt
 	[[Isgl3dAccelerometer sharedInstance] startTiltCalibration];
 }
 
-- (void) togglePause:(Isgl3dEvent3D *)event {
+- (void)togglePause:(Isgl3dEvent3D *)event {
 	// Toggles the scene transformation calculations
 	_pauseActive = !_pauseActive;
 	if (_pauseActive) {
@@ -159,7 +167,7 @@
 	
 }
 
-- (void) toggleCamera:(Isgl3dEvent3D *)event {
+- (void)toggleCamera:(Isgl3dEvent3D *)event {
 	// Toggles the camera mode
 	_cameraActive = !_cameraActive;
 	_pauseActive = _cameraActive;
@@ -169,13 +177,13 @@
 	}
 }
 
-- (void) translateCamera:(float)phi {
+- (void)translateCamera:(float)phi {
 	// Calculate the position of the camera from given angles
 	float y = _orbitalDistance * cos(phi);
 	float radius = _orbitalDistance * sin(phi);
 	float x = radius * sin(_theta);
 	float z = radius * cos(_theta);
-	self.camera.position = iv3(x, y, z);
+	self.activeNodeCamera.position = Isgl3dVector3Make(x, y, z);
 }
 
 - (Isgl3dPhysicsObject3D *) createPhysicsObject:(Isgl3dMeshNode *)node shape:(btCollisionShape *)shape mass:(float)mass restitution:(float)restitution {
@@ -207,9 +215,9 @@
 @synthesize pauseButton = _pauseButton;
 @synthesize cameraButton = _cameraButton;
 
-- (id) init {
+- (id)init {
 	
-	if ((self = [super init])) {
+	if (self = [super init]) {
 
 		// Create a button to calibrate the accelerometer
 		Isgl3dTextureMaterial * calibrateButtonMaterial = [Isgl3dTextureMaterial materialWithTextureFile:@"angle.png" shininess:0.9 precision:Isgl3dTexturePrecisionMedium repeatX:NO repeatY:NO];
@@ -236,7 +244,7 @@
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 
 	[super dealloc];
 }
@@ -253,10 +261,7 @@
  */
 @implementation AppDelegate
 
-- (void) createViews {
-	// Set the device orientation
-	[Isgl3dDirector sharedInstance].deviceOrientation = Isgl3dOrientation90CounterClockwise;
-
+- (void)createViews {
 	// Create views
 	AccelerometerDemoView * mainView = [AccelerometerDemoView view];
 	[[Isgl3dDirector sharedInstance] addView:mainView];

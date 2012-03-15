@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,7 +30,7 @@ static Isgl3dGLVBOFactory * _instance = nil;
 
 @implementation Isgl3dGLVBOFactory
 
-- (id) init {
+- (id)init {
 	
 	if ((self = [super init])) {
 	}
@@ -38,7 +38,7 @@ static Isgl3dGLVBOFactory * _instance = nil;
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	if (_concreteFactory) {
 		[_concreteFactory release]; 
 	}
@@ -64,7 +64,7 @@ static Isgl3dGLVBOFactory * _instance = nil;
 	}
 }
 
-- (void) setConcreteFactory:(Isgl3dGLVBOFactory *)concreteFactory {
+- (void)setConcreteFactory:(Isgl3dGLVBOFactory *)concreteFactory {
 	if (concreteFactory != _concreteFactory) {
 		if (_concreteFactory) {
 			[_concreteFactory release];
@@ -82,7 +82,7 @@ static Isgl3dGLVBOFactory * _instance = nil;
 		return [_concreteFactory createBufferFromArray:array size:size];
 	}
 
-	Isgl3dLog(Error, @"Isgl3dGLVBOFactory.createBufferFromArray: not initialised with concrete factory");
+	Isgl3dDebugLog(Isgl3dLogLevelError, @"createBufferFromArray: not initialized with concrete factory");
 	return 0;	
 }
 
@@ -91,7 +91,7 @@ static Isgl3dGLVBOFactory * _instance = nil;
 		return [_concreteFactory createBufferFromFloatArray:floatArray];
 	}
 
-	Isgl3dLog(Error, @"Isgl3dGLVBOFactory.createBufferFromFloatArray: not initialised with concrete factory");
+	Isgl3dDebugLog(Isgl3dLogLevelError, @"createBufferFromFloatArray: not initialized with concrete factory");
 	return 0;	
 }
 
@@ -100,7 +100,7 @@ static Isgl3dGLVBOFactory * _instance = nil;
 		return [_concreteFactory createBufferFromElementArray:array size:size];
 	}
 
-	Isgl3dLog(Error, @"GLVBOFactory.createBufferFromElementArray: not initialised with concrete factory");
+	Isgl3dDebugLog(Isgl3dLogLevelError, @"createBufferFromElementArray: not initialized with concrete factory");
 	return 0;	
 }
 
@@ -109,7 +109,7 @@ static Isgl3dGLVBOFactory * _instance = nil;
 		return [_concreteFactory createBufferFromUShortElementArray:ushortArray];
 	}
 
-	Isgl3dLog(Error, @"Isgl3dGLVBOFactory.createBufferFromUShortElementArray: not initialised with concrete factory");
+	Isgl3dDebugLog(Isgl3dLogLevelError, @"createBufferFromUShortElementArray: not initialized with concrete factory");
 	return 0;	
 }
 
@@ -118,55 +118,55 @@ static Isgl3dGLVBOFactory * _instance = nil;
 		return [_concreteFactory createBufferFromUnsignedCharArray:array size:size];
 	}
 
-	Isgl3dLog(Info, @"Isgl3dGLVBOFactory.createBufferFromUnsignedCharArray: not initialised with concrete factory");
+	Isgl3dDebugLog(Isgl3dLogLevelError, @"createBufferFromUnsignedCharArray: not initialized with concrete factory");
 	return 0;	
 }
 
-- (void) createBufferFromArray:(const float*)array size:(int)size atIndex:(unsigned int)bufferIndex {
+- (void)createBufferFromArray:(const float*)array size:(int)size atIndex:(unsigned int)bufferIndex {
 	if (_concreteFactory) {
 		[_concreteFactory createBufferFromArray:array size:size atIndex:bufferIndex];
 	} else {
-		Isgl3dLog(Error, @"Isgl3dGLVBOFactory.createBufferFromArray: not initialised with concrete factory");
+		Isgl3dDebugLog(Isgl3dLogLevelError, @"createBufferFromArray: not initialized with concrete factory");
 	}
 }
 
-- (void) createBufferFromFloatArray:(Isgl3dFloatArray *)floatArray atIndex:(unsigned int)bufferIndex {
+- (void)createBufferFromFloatArray:(Isgl3dFloatArray *)floatArray atIndex:(unsigned int)bufferIndex {
 	if (_concreteFactory) {
 		[_concreteFactory createBufferFromFloatArray:floatArray atIndex:bufferIndex];
 	} else {
-		Isgl3dLog(Error, @"Isgl3dGLVBOFactory.createBufferFromFloatArray: not initialised with concrete factory");
+		Isgl3dDebugLog(Isgl3dLogLevelError, @"createBufferFromFloatArray: not initialized with concrete factory");
 	}
 }
 
-- (void) createBufferFromElementArray:(const unsigned short*)array size:(int)size atIndex:(unsigned int)bufferIndex {
+- (void)createBufferFromElementArray:(const unsigned short*)array size:(int)size atIndex:(unsigned int)bufferIndex {
 	if (_concreteFactory) {
 		[_concreteFactory createBufferFromElementArray:array size:size atIndex:bufferIndex];
 	} else {
-		Isgl3dLog(Error, @"Isgl3dGLVBOFactory.createBufferFromElementArray: not initialised with concrete factory");
+		Isgl3dDebugLog(Isgl3dLogLevelError, @"createBufferFromElementArray: not initialized with concrete factory");
 	}
 }
 
-- (void) createBufferFromUShortElementArray:(Isgl3dUShortArray *)ushortArray atIndex:(unsigned int)bufferIndex {
+- (void)createBufferFromUShortElementArray:(Isgl3dUShortArray *)ushortArray atIndex:(unsigned int)bufferIndex {
 	if (_concreteFactory) {
 		[_concreteFactory createBufferFromUShortElementArray:ushortArray atIndex:bufferIndex];
 	} else {
-		Isgl3dLog(Error, @"Isgl3dGLVBOFactory.createBufferFromUShortElementArray: not initialised with concrete factory");
+		Isgl3dDebugLog(Isgl3dLogLevelError, @"createBufferFromUShortElementArray: not initialized with concrete factory");
 	}
 }
 
-- (void) createBufferFromUnsignedCharArray:(const unsigned char *)array size:(unsigned int)size atIndex:(unsigned int)bufferIndex {
+- (void)createBufferFromUnsignedCharArray:(const unsigned char *)array size:(unsigned int)size atIndex:(unsigned int)bufferIndex {
 	if (_concreteFactory) {
 		[_concreteFactory createBufferFromUnsignedCharArray:array size:size atIndex:bufferIndex];
 	} else {
-		Isgl3dLog(Error, @"Isgl3dGLVBOFactory.createBufferFromUnsignedCharArray: not initialised with concrete factory");
+		Isgl3dDebugLog(Isgl3dLogLevelError, @"createBufferFromUnsignedCharArray: not initialized with concrete factory");
 	}
 }
 
-- (void) deleteBuffer:(unsigned int)bufferIndex {
+- (void)deleteBuffer:(unsigned int)bufferIndex {
 	if (_concreteFactory) {
 		[_concreteFactory deleteBuffer:bufferIndex];
 	} else {
-		Isgl3dLog(Error, @"Isgl3dGLVBOFactory.deleteBuffer: not initialised with concrete factory");
+		Isgl3dDebugLog(Isgl3dLogLevelError, @"deleteBuffer: not initialized with concrete factory");
 	}
 }
 

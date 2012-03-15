@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -30,6 +30,7 @@
 
 @class Isgl3dGLDepthRenderTexture;
 
+
 /**
  * The Isgl3dShadowCastingLight is used as a light source for casting shadows onto the scene.
  * 
@@ -39,26 +40,28 @@
  * 
  * Only one Isgl3dShadowCastingLight can be added to the scene.
  */
-@interface Isgl3dShadowCastingLight : Isgl3dLight {
-	    
-@private
-	Isgl3dGLDepthRenderTexture * _shadowRenderTexture;
-
-	Isgl3dMatrix4 _viewMatrix;
-	
-	Isgl3dNode * _planarShadowsNode;
-	Isgl3dVector3 _planarShadowsNodeNormal;
-}
+@interface Isgl3dShadowCastingLight : Isgl3dLight
 
 /**
  * For use with planar shadows only, this contains the node onto which shadows are rendered.
  */
-@property (nonatomic, retain) Isgl3dNode * planarShadowsNode;
+@property (nonatomic, retain) Isgl3dNode *planarShadowsNode;
 
 /**
  * For use with planar shadows only, this contains the vector representation of the plane on which shadows are rendered.
  * Even if the node is not a plane, shadows are generated only in a single plane.
  */
 @property (nonatomic) Isgl3dVector3 planarShadowsNodeNormal;
+
+
+/**
+ *
+ */
++ (id)lightWithHexColor:(NSString *)ambientColor diffuseColor:(NSString *)diffuseColor specularColor:(NSString *)specularColor fovyRadians:(float)fovyRadians attenuation:(float)attenuation;
+
+/**
+ *
+ */
+- (id)initWithHexColor:(NSString *)ambientColor diffuseColor:(NSString *)diffuseColor specularColor:(NSString *)specularColor fovyRadians:(float)fovyRadians attenuation:(float)attenuation;
 
 @end

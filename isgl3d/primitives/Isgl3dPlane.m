@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -29,33 +29,38 @@
 #import "Isgl3dUShortArray.h"
 
 
-@interface Isgl3dPlane (PrivateMethods) 
-- (void)buildPrimitiveWithUVMap:(const Isgl3dUVMap *)uvMap isFrontFace:(BOOL)isFrontFace;
+@interface Isgl3dPlane () {
+@private
+	int _nx;
+	int _ny;
+	
+	Isgl3dUVMap * _uvMap;
+}
 @end
 
 
+#pragma mark -
 @implementation Isgl3dPlane
 
-
-+ (id) meshWithGeometry:(float)width height:(float)height nx:(int)nx ny:(int)ny {
++ (id)meshWithGeometry:(float)width height:(float)height nx:(int)nx ny:(int)ny {
 	return [[[self alloc] initWithGeometry:width height:height nx:nx ny:ny] autorelease];
 }
 
-+ (id) meshWithGeometryAndUVMap:(float)width height:(float)height nx:(int)nx ny:(int)ny uvMap:(Isgl3dUVMap *)uvMap {
++ (id)meshWithGeometryAndUVMap:(float)width height:(float)height nx:(int)nx ny:(int)ny uvMap:(Isgl3dUVMap *)uvMap {
 	return [[[self alloc] initWithGeometryAndUVMap:width height:height nx:nx ny:ny uvMap:uvMap] autorelease];
 }
 
-- (id) initWithGeometry:(float)width height:(float)height nx:(int)nx ny:(int)ny {
+- (id)initWithGeometry:(float)width height:(float)height nx:(int)nx ny:(int)ny {
 	
-	if ((self = [self initWithGeometryAndUVMap:width height:height nx:nx ny:ny uvMap:nil])) {
+	if (self = [self initWithGeometryAndUVMap:width height:height nx:nx ny:ny uvMap:nil]) {
 		// Empty.
 	}
 	
 	return self;
 }
 
-- (id) initWithGeometryAndUVMap:(float)width height:(float)height nx:(int)nx ny:(int)ny uvMap:(Isgl3dUVMap *)uvMap {
-	if ((self = [super init])) {
+- (id)initWithGeometryAndUVMap:(float)width height:(float)height nx:(int)nx ny:(int)ny uvMap:(Isgl3dUVMap *)uvMap {
+	if (self = [super init]) {
 		_width = width;
 		_height = height;
 		_nx = nx;
@@ -64,22 +69,23 @@
 		if (uvMap) {
 			_uvMap = [uvMap retain];
 		} else {
-			_uvMap = [[Isgl3dUVMap standardUVMap] retain];
+			_uvMap = [Isgl3dUVMap standardUVMap];
 		}
-		
+        
 		[self constructVBOData];
 	}
 	
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	[_uvMap release];
+    _uvMap = nil;
 	
     [super dealloc];
 }
 
-- (void) fillVertexData:(Isgl3dFloatArray *)vertexData andIndices:(Isgl3dUShortArray *)indices {
+- (void)fillVertexData:(Isgl3dFloatArray *)vertexData andIndices:(Isgl3dUShortArray *)indices {
 
 	float uABVector = _uvMap.uB - _uvMap.uA;
 	float vABVector = _uvMap.vB - _uvMap.vA;

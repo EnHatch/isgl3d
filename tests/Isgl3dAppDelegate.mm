@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -31,16 +31,13 @@
 
 @synthesize window = _window;
 
-- (void) applicationDidFinishLaunching:(UIApplication*)application {
+- (void)applicationDidFinishLaunching:(UIApplication*)application {
 
 	// Create the UIWindow
 	_window = [[UIWindow alloc] initWithFrame:[[UIScreen mainScreen] bounds]];
 	
 	// Instantiate the Isgl3dDirector and set background color
 	[Isgl3dDirector sharedInstance].backgroundColorString = @"333333ff"; 
-
-	// Set the director to display the FPS
-	[Isgl3dDirector sharedInstance].displayFPS = YES; 
 
 	// Create the UIViewController
 	_viewController = [[Isgl3dViewController alloc] initWithNibName:nil bundle:nil];
@@ -56,13 +53,9 @@
 
 	// Set view in director
 	[Isgl3dDirector sharedInstance].openGLView = glView;
-	
-	// Specify auto-rotation strategy if required (for example via the UIViewController and only landscape)
-	[Isgl3dDirector sharedInstance].autoRotationStrategy = Isgl3dAutoRotationByUIViewController;
-	[Isgl3dDirector sharedInstance].allowedAutoRotations = Isgl3dAllowedAutoRotationsLandscapeOnly;
-	
+    
 	// Enable retina display : uncomment if desired
-//	[[Isgl3dDirector sharedInstance] enableRetinaDisplay:YES];
+	[[Isgl3dDirector sharedInstance] enableRetinaDisplay:YES];
 
 	// Enables anti aliasing (MSAA) : uncomment if desired (note may not be available on all devices and can have performance cost)
 //	[Isgl3dDirector sharedInstance].antiAliasingEnabled = YES;
@@ -84,7 +77,7 @@
 	[[Isgl3dDirector sharedInstance] run];
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	if (_viewController) {
 		[_viewController release];
 	}
@@ -95,27 +88,27 @@
 	[super dealloc];
 }
 
-- (void) createViews {
+- (void)createViews {
 	// Implement in sub-classes
 }
 
-- (void) applicationWillResignActive:(UIApplication *)application {
+- (void)applicationWillResignActive:(UIApplication *)application {
 	[[Isgl3dDirector sharedInstance] pause];
 }
 
-- (void) applicationDidBecomeActive:(UIApplication *)application {
+- (void)applicationDidBecomeActive:(UIApplication *)application {
 	[[Isgl3dDirector sharedInstance] resume];
 }
 
-- (void) applicationDidEnterBackground:(UIApplication *)application {
+- (void)applicationDidEnterBackground:(UIApplication *)application {
 	[[Isgl3dDirector sharedInstance] stopAnimation];
 }
 
-- (void) applicationWillEnterForeground:(UIApplication *)application {
+- (void)applicationWillEnterForeground:(UIApplication *)application {
 	[[Isgl3dDirector sharedInstance] startAnimation];
 }
 
-- (void) applicationWillTerminate:(UIApplication *)application {
+- (void)applicationWillTerminate:(UIApplication *)application {
 	// Remove the OpenGL view from the view controller
 	[[Isgl3dDirector sharedInstance].openGLView removeFromSuperview];
 	
@@ -129,11 +122,11 @@
 	_window = nil;
 }
 
-- (void) applicationDidReceiveMemoryWarning:(UIApplication *)application {
+- (void)applicationDidReceiveMemoryWarning:(UIApplication *)application {
 	[[Isgl3dDirector sharedInstance] onMemoryWarning];
 }
 
-- (void) applicationSignificantTimeChange:(UIApplication *)application {
+- (void)applicationSignificantTimeChange:(UIApplication *)application {
 	[[Isgl3dDirector sharedInstance] onSignificantTimeChange];
 }
 

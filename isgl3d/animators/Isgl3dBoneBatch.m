@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,14 +27,16 @@
 #import "Isgl3dBoneNode.h"
 #import "Isgl3dGLRenderer.h"
 #import "Isgl3dArray.h"
+#import "Isgl3dMatrix4.h"
+
 
 @implementation Isgl3dBoneBatch
 
-+ (id) boneBatchWithNumberOfElements:(unsigned int)numberOfElements andElementOffset:(unsigned int)elementOffset {
++ (id)boneBatchWithNumberOfElements:(unsigned int)numberOfElements andElementOffset:(unsigned int)elementOffset {
 	return [[[self alloc] initWithNumberOfElements:numberOfElements andElementOffset:elementOffset] autorelease];
 }
 
-- (id) initWithNumberOfElements:(unsigned int)numberOfElements andElementOffset:(unsigned int)elementOffset {
+- (id)initWithNumberOfElements:(unsigned int)numberOfElements andElementOffset:(unsigned int)elementOffset {
     if ((self = [super init])) {
     	_numberOfElements = numberOfElements;
     	_elementOffset = elementOffset;
@@ -51,7 +53,7 @@
     return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	[_frameTransformations release];
 	[_currentFrameGlobalTransformations release];
 	[_currentFrameGlobalInverseTransformations release];
@@ -59,11 +61,11 @@
 	[super dealloc];
 }
 
-- (void) addBoneTransformations:(Isgl3dArray *)transformations forFrame:(unsigned int)frame {
+- (void)addBoneTransformations:(Isgl3dArray *)transformations forFrame:(unsigned int)frame {
 	[_frameTransformations setObject:transformations forKey:[NSNumber numberWithInt:frame]];
 }
 
-- (void) setFrame:(unsigned int)frameNumber {
+- (void)setFrame:(unsigned int)frameNumber {
 	if (frameNumber != _currentFrameNumber) {
 		_currentFrameNumber = frameNumber;
 		_frameChanged = YES;
@@ -72,11 +74,11 @@
 	}
 }
 
-- (void) setTransformationDirty:(BOOL)isDirty {
+- (void)setTransformationDirty:(BOOL)isDirty {
 	_transformationDirty = isDirty;
 }
 
-- (void) updateWorldTransformation:(Isgl3dMatrix4 *)parentTransformation {
+- (void)updateWorldTransformation:(Isgl3dMatrix4 *)parentTransformation {
 	
 	if (_transformationDirty || _frameChanged) {
 		[_currentFrameGlobalTransformations clear];
@@ -86,14 +88,10 @@
 		Isgl3dArray * transformations = [_frameTransformations objectForKey:[NSNumber numberWithInt:_currentFrameNumber]];
 		IA_FOREACH_PTR(Isgl3dMatrix4 *, transformation, transformations) {
 			
-			Isgl3dMatrix4 globalTransformation;
-            im4Copy(&globalTransformation, parentTransformation);
-			im4Multiply(&globalTransformation, transformation);
+			Isgl3dMatrix4 globalTransformation = Isgl3dMatrix4Multiply(*parentTransformation, *transformation);
 			IA_ADD(_currentFrameGlobalTransformations, globalTransformation);
 
-			Isgl3dMatrix4 itMatrix = globalTransformation;
-			im4Invert(&itMatrix);
-			im4Transpose(&itMatrix);
+            Isgl3dMatrix4 itMatrix = Isgl3dMatrix4InvertAndTranspose(globalTransformation, NULL);
 			IA_ADD(_currentFrameGlobalInverseTransformations, itMatrix);
 		}	
 		
@@ -103,7 +101,7 @@
 }
 
 
-- (void) renderMesh:(Isgl3dGLRenderer *)renderer {
+- (void)renderMesh:(Isgl3dGLRenderer *)renderer {
 	// Pass transformations to renderer
 	[renderer setBoneTransformations:_currentFrameGlobalTransformations andInverseTransformations:_currentFrameGlobalInverseTransformations];
 	

@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,9 +25,9 @@
 
 #import <Foundation/Foundation.h>
 
-static NSString * version = @"iSGL3D v1.3.0";
+static const NSString const* version = @"iSGL3D v1.3.0";
 
-NSString * isgl3dVersion() {
+const NSString const* isgl3dVersion() {
 	return version;
 }
 

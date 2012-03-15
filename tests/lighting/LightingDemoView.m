@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,14 +26,22 @@
 #import "LightingDemoView.h"
 #import "Isgl3dDemoCameraController.h"
 
+
+@interface LightingDemoView ()
+@end
+
+
+#pragma mark -
 @implementation LightingDemoView
 
-- (id) init {
+- (id)init {
 	
-	if ((self = [super init])) {
+	if (self = [super init]) {
+        
+        Isgl3dNodeCamera *camera = (Isgl3dNodeCamera *)self.defaultCamera;
 
 		// Create and configure touch-screen camera controller
-		_cameraController = [[Isgl3dDemoCameraController alloc] initWithCamera:self.camera andView:self];
+		_cameraController = [[Isgl3dDemoCameraController alloc] initWithNodeCamera:camera andView:self];
 		_cameraController.orbit = 17;
 		_cameraController.theta = 30;
 		_cameraController.phi = 10;
@@ -51,7 +59,7 @@
 			for (int j = 0; j < 3; j++) {
 				for (int i = 0; i < 3; i++) {
 					Isgl3dMeshNode * node = [self.scene createNodeWithMesh:primitive andMaterial:textureMaterial];
-					node.position = iv3(((i - 1.0) * 4), ((j - 1.0) * 4), ((k - 1.0) * 4));
+					node.position = Isgl3dVector3Make(((i - 1.0) * 4), ((j - 1.0) * 4), ((k - 1.0) * 4));
 	
 					[_sceneObjects addObject:node];
 				}
@@ -75,7 +83,7 @@
 		_whiteLight = [Isgl3dLight lightWithHexColor:@"111111" diffuseColor:@"FFFFFF" specularColor:@"FFFFFF" attenuation:0.02];
 		[self.scene addChild:_whiteLight];
 		_whiteLight.renderLight = YES;
-		_whiteLight.position = iv3(7, 7, 4);
+		_whiteLight.position = Isgl3dVector3Make(7, 7, 4);
 	
 		// Set the scene ambient color
 		[self setSceneAmbient:@"444444"];
@@ -87,25 +95,27 @@
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	[_cameraController release];
+    _cameraController = nil;
 
 	[_sceneObjects release];
+    _sceneObjects = nil;
 	
 	[super dealloc];
 }
 
-- (void) onActivated {
+- (void)onActivated {
 	// Add camera controller to touch-screen manager
 	[[Isgl3dTouchScreen sharedInstance] addResponder:_cameraController];
 }
 
-- (void) onDeactivated {
+- (void)onDeactivated {
 	// Remove camera controller from touch-screen manager
 	[[Isgl3dTouchScreen sharedInstance] removeResponder:_cameraController];
 }
 
-- (void) tick:(float)dt {
+- (void)tick:(float)dt {
 	
 	// Rotate the spheres
 	for (int i = 0; i < [_sceneObjects count]; i++) {
@@ -116,9 +126,9 @@
 	float blueAngle = _lightAngle;
 	float redAngle = -(blueAngle + 120);
 	float greenAngle = redAngle + 12;
-	_blueLight.position = iv3(7 * sin(blueAngle * M_PI / 90), 7 * cos(blueAngle * M_PI / 90), 7 * cos(blueAngle * M_PI / 180));
-	_redLight.position = iv3(7 * sin(redAngle * M_PI / 145), 7 * cos(redAngle * M_PI / 145), 7 * cos(redAngle * M_PI / 180));
-	_greenLight.position = iv3(7 * sin(greenAngle * M_PI / 60), 7 * cos(greenAngle * M_PI / 60), 7 * cos(greenAngle * M_PI / 180));
+	_blueLight.position = Isgl3dVector3Make(7 * sin(blueAngle * M_PI / 90), 7 * cos(blueAngle * M_PI / 90), 7 * cos(blueAngle * M_PI / 180));
+	_redLight.position = Isgl3dVector3Make(7 * sin(redAngle * M_PI / 145), 7 * cos(redAngle * M_PI / 145), 7 * cos(redAngle * M_PI / 180));
+	_greenLight.position = Isgl3dVector3Make(7 * sin(greenAngle * M_PI / 60), 7 * cos(greenAngle * M_PI / 60), 7 * cos(greenAngle * M_PI / 180));
 
 	_sphereAngle = (_sphereAngle + 2);
 	_lightAngle = _lightAngle + 2;
@@ -139,12 +149,11 @@
  */
 @implementation AppDelegate
 
-- (void) createViews {
-	// Set the device orientation
-	[Isgl3dDirector sharedInstance].deviceOrientation = Isgl3dOrientationLandscapeLeft;
-
+- (void)createViews {
 	// Create view and add to Isgl3dDirector
-	Isgl3dView * view = [LightingDemoView view];
+	Isgl3dView *view = [LightingDemoView view];
+    view.displayFPS = YES;
+    
 	[[Isgl3dDirector sharedInstance] addView:view];
 }
 

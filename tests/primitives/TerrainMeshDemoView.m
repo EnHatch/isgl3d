@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,13 +26,22 @@
 #import "TerrainMeshDemoView.h"
 #import "Isgl3dDemoCameraController.h"
 
+
+@interface TerrainMeshDemoView ()
+@end
+
+
+#pragma mark -
 @implementation TerrainMeshDemoView
 
-- (id) init {
+- (id)init {
 	
 	if ((self = [super init])) {
+        
+        Isgl3dNodeCamera *camera = (Isgl3dNodeCamera *)self.defaultCamera;
+        
 		// Create and configure touch-screen camera controller
-		_cameraController = [[Isgl3dDemoCameraController alloc] initWithCamera:self.camera andView:self];
+		_cameraController = [[Isgl3dDemoCameraController alloc] initWithNodeCamera:camera andView:self];
 		_cameraController.orbit = 40;
 		_cameraController.theta = 30;
 		_cameraController.phi = 10;
@@ -47,7 +56,7 @@
 		Isgl3dPlane * planeMesh = [Isgl3dPlane meshWithGeometry:32 height:32 nx:4 ny:4];
 		_plane = [_container createNodeWithMesh:planeMesh andMaterial:dataMaterial];
 		_plane.rotationX = -90;
-		_plane.position = iv3(0, -5, 0);
+		_plane.position = Isgl3dVector3Make(0, -5, 0);
 		_plane.lightingEnabled = NO;
 	
 		Isgl3dTerrainMesh * terrainMesh = [Isgl3dTerrainMesh meshWithTerrainDataFile:@"RaceTrack1Path_512.png" channel:2 width:32 depth:32 height:10 nx:32 nz:32];
@@ -55,7 +64,7 @@
 	
 		// Add light
 		Isgl3dLight * light  = [Isgl3dLight lightWithHexColor:@"FFFFFF" diffuseColor:@"FFFFFF" specularColor:@"FFFFFF" attenuation:0.005];
-		light.position = iv3(5, 10, 10);
+		light.position = Isgl3dVector3Make(5, 10, 10);
 		[self.scene addChild:light];	
 
 		// Schedule updates
@@ -67,6 +76,7 @@
 
 - (void) dealloc {
 	[_cameraController release];
+    _cameraController = nil;
 
 	[super dealloc];
 }
@@ -99,11 +109,10 @@
 @implementation AppDelegate
 
 - (void) createViews {
-	// Set the device orientation
-	[Isgl3dDirector sharedInstance].deviceOrientation = Isgl3dOrientationLandscapeLeft;
-
 	// Create view and add to Isgl3dDirector
-	Isgl3dView * view = [TerrainMeshDemoView view];
+	Isgl3dView *view = [TerrainMeshDemoView view];
+    view.displayFPS = YES;
+    
 	[[Isgl3dDirector sharedInstance] addView:view];
 }
 

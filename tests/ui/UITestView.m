@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -25,11 +25,17 @@
 
 #import "UITestView.h"
 
+
+@interface Simple3DView ()
+@end
+
+
+#pragma mark -
 @implementation UITestView
 
-- (id) init {
+- (id)init {
 	
-	if ((self = [super init])) {
+	if (self = [super init]) {
 		// Create a button to calibrate the accelerometer
 		Isgl3dTextureMaterial * calibrateButtonMaterial = [Isgl3dTextureMaterial materialWithTextureFile:@"angle.png" shininess:0.9 precision:Isgl3dTexturePrecisionMedium repeatX:NO repeatY:NO];
 		Isgl3dGLUIButton * calibrateButton = [Isgl3dGLUIButton buttonWithMaterial:calibrateButtonMaterial];
@@ -81,15 +87,14 @@
 
 @implementation UIBackgroundView
 
-- (id) init {
+- (id)init {
 	
-	if ((self = [super init])) {
+	if (self = [super init]) {
 		// Create a button to calibrate the accelerometer
-		Isgl3dTextureMaterial * backgroundMaterial = [Isgl3dTextureMaterial materialWithTextureFile:@"ui_bg.pvr" shininess:0 precision:Isgl3dTexturePrecisionMedium repeatX:NO repeatY:NO];
-		Isgl3dGLUIImage * background = [Isgl3dGLUIImage imageWithMaterial:backgroundMaterial andRectangle:CGRectMake(0, 0, 480, 320) width:480 height:320];
+		Isgl3dTextureMaterial *backgroundMaterial = [Isgl3dTextureMaterial materialWithTextureFile:@"ui_bg.pvr" shininess:0 precision:Isgl3dTexturePrecisionMedium repeatX:NO repeatY:NO];
+		Isgl3dGLUIImage *background = [Isgl3dGLUIImage imageWithMaterial:backgroundMaterial andRectangle:self.viewport width:self.viewport.size.width height:self.viewport.size.height];
 		[self.scene addChild:background];
 	}
-	
 	return self;
 }
 
@@ -107,9 +112,9 @@
 
 @implementation Simple3DView 
 
-- (id) init {
+- (id)init {
 	
-	if ((self = [super init])) {
+	if (self = [super init]) {
 		// Create the primitive
 		Isgl3dTextureMaterial * material = [Isgl3dTextureMaterial materialWithTextureFile:@"red_checker.png" shininess:0.9 precision:Isgl3dTexturePrecisionMedium repeatX:NO repeatY:NO];
 		Isgl3dTorus * torusMesh = [Isgl3dTorus meshWithGeometry:2 tubeRadius:1 ns:32 nt:32];
@@ -117,11 +122,13 @@
 	
 		// Add light
 		Isgl3dLight * light  = [Isgl3dLight lightWithHexColor:@"FFFFFF" diffuseColor:@"FFFFFF" specularColor:@"FFFFFF" attenuation:0.005];
-		light.position = iv3(5, 15, 15);
+		light.position = Isgl3dVector3Make(5, 15, 15);
 		[self.scene addChild:light];
 
 		// Create camera controller
-		_cameraController = [[Isgl3dDemoCameraController alloc] initWithCamera:self.camera andView:self];
+        Isgl3dNodeCamera *nodeCamera = (Isgl3dNodeCamera *)self.defaultCamera;
+        
+		_cameraController = [[Isgl3dDemoCameraController alloc] initWithNodeCamera:nodeCamera andView:self];
 		_cameraController.orbit = 14;
 		_cameraController.theta = 30;
 		_cameraController.phi = 30;
@@ -134,6 +141,7 @@
 
 - (void) dealloc {
 	[_cameraController release];
+    _cameraController = nil;
 		
 	[super dealloc];
 }
@@ -166,19 +174,17 @@
 @implementation AppDelegate
 
 - (void) createViews {
-	// Set the device orientation
-	[Isgl3dDirector sharedInstance].deviceOrientation = Isgl3dOrientationLandscapeLeft;
-
 	// Create 2D view background and add to Isgl3dDirector
-	Isgl3dView * background = [UIBackgroundView view];
+	Isgl3dView *background = [UIBackgroundView view];
+    background.displayFPS = YES;
 	[[Isgl3dDirector sharedInstance] addView:background];
 
 	// Create 3D view and add to Isgl3dDirector
-	Isgl3dView * view = [Simple3DView view];
+	Isgl3dView *view = [Simple3DView view];
 	[[Isgl3dDirector sharedInstance] addView:view];
 
 	// Create UI and add to Isgl3dDirector
-	Isgl3dView * ui = [UITestView view];
+	Isgl3dView *ui = [UITestView view];
 	[[Isgl3dDirector sharedInstance] addView:ui];
 
 }

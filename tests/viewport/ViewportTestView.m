@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -26,11 +26,17 @@
 #import "ViewportTestView.h"
 #import "Isgl3dDemoCameraController.h"
 
+
+@interface ViewportTestView ()
+@end
+
+
+#pragma mark -
 @implementation ViewportTestView
 
-- (id) init {
+- (id)init {
 	
-	if ((self = [super init])) {
+	if (self = [super init]) {
 
 		// Create the primitive
 		Isgl3dTextureMaterial * material = [Isgl3dTextureMaterial materialWithTextureFile:@"red_checker.png" shininess:0.9 precision:Isgl3dTexturePrecisionMedium repeatX:NO repeatY:NO];
@@ -44,11 +50,13 @@
 	
 		// Add light
 		Isgl3dLight * light  = [Isgl3dLight lightWithHexColor:@"FFFFFF" diffuseColor:@"FFFFFF" specularColor:@"FFFFFF" attenuation:0.005];
-		light.position = iv3(5, 15, 15);
+		light.position = Isgl3dVector3Make(5, 15, 15);
 		[self.scene addChild:light];
 
 		// Create camera controller
-		_cameraController = [[Isgl3dDemoCameraController alloc] initWithCamera:self.camera andView:self];
+        Isgl3dNodeCamera *camera = (Isgl3dNodeCamera *)self.defaultCamera;
+        
+		_cameraController = [[Isgl3dDemoCameraController alloc] initWithNodeCamera:camera andView:self];
 		_cameraController.orbit = 14;
 		_cameraController.theta = 30;
 		_cameraController.phi = 30;
@@ -58,30 +66,30 @@
 	return self;
 }
 
-- (void) dealloc {
+- (void)dealloc {
 	[_cameraController release];
+    _cameraController = nil;
 
 	[super dealloc];
 }
 
-
-- (void) onActivated {
+- (void)onActivated {
 	// Add camera controller to touch-screen manager - responds only to touches in viewport
 	[[Isgl3dTouchScreen sharedInstance] addResponder:_cameraController withView:self];
 }
 
-- (void) onDeactivated {
+- (void)onDeactivated {
 	// Remove camera controller from touch-screen manager
 	[[Isgl3dTouchScreen sharedInstance] removeResponder:_cameraController];
 }
 
-- (void) tick:(float)dt {
+- (void)tick:(float)dt {
 	_torus.rotationY += 0.5;
 	
 	[_cameraController update];
 }
 
-- (void) objectTouched:(Isgl3dEvent3D *)event {
+- (void)objectTouched:(Isgl3dEvent3D *)event {
 	UITouch * touch = [[event.touches allObjects] objectAtIndex:0];
 	CGPoint uiPoint = [touch locationInView:touch.view];
 	CGPoint viewPoint = [self convertUIPointToView:uiPoint];
@@ -89,11 +97,11 @@
 	NSLog(@"object touched %i %@ %@", [event.touches count], NSStringFromCGPoint(uiPoint), NSStringFromCGPoint(viewPoint));
 }
 
-- (void) objectMoved:(Isgl3dEvent3D *)event {
+- (void)objectMoved:(Isgl3dEvent3D *)event {
 	NSLog(@"object moved %i", [event.touches count]);
 }
 
-- (void) objectReleased:(Isgl3dEvent3D *)event {
+- (void)objectReleased:(Isgl3dEvent3D *)event {
 	NSLog(@"object released %i", [event.touches count]);
 }
 
@@ -107,14 +115,12 @@
 @implementation AppDelegate
 
 - (void) createViews {
-	// Set the device orientation
-	[Isgl3dDirector sharedInstance].deviceOrientation = Isgl3dOrientationLandscapeLeft;
-
 	// Add Isgl3dView 1
-	Isgl3dView * view1 = [ViewportTestView view];
+	Isgl3dView *view1 = [ViewportTestView view];
 	view1.viewport = CGRectMake(2, 241, 316, 237);
 	view1.backgroundColorString = @"000022ff";
 	view1.isOpaque = YES;
+    view1.displayFPS = YES;
 	[[Isgl3dDirector sharedInstance] addView:view1];
 	
 	// Add Isgl3dView 2
@@ -122,7 +128,6 @@
 	view2.viewport = CGRectMake(2, 2, 316, 237);
 	view2.backgroundColorString = @"002200ff";
 	view2.isOpaque = YES;
-	view2.viewOrientation = Isgl3dOrientation90CounterClockwise;
 	[[Isgl3dDirector sharedInstance] addView:view2];
 }
 

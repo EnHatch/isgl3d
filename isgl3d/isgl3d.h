@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -22,6 +22,10 @@
  * THE SOFTWARE.
  *
  */
+
+
+extern const NSString const* isgl3dVersion();
+
 
 #import "actions/Isgl3dAction.h"
 #import "actions/Isgl3dActionAlpha.h"
@@ -45,9 +49,14 @@
 #import "animators/Isgl3dBoneNode.h"
 #import "animators/Isgl3dKeyframeMesh.h"
 #import "animators/Isgl3dSkeletonNode.h"
+#import "cameras/Isgl3dCameraLens.h"
+#import "cameras/Isgl3dFocusZoomPerspectiveLens.h"
 #import "cameras/Isgl3dCamera.h"
+#import "cameras/Isgl3dLookAtCamera.h"
+#import "cameras/Isgl3dNodeCamera.h"
 #import "cameras/Isgl3dFollowCamera.h"
 #import "cameras/Isgl3dSpringCamera.h"
+#import "cameras/Isgl3dOverlayCamera.h"
 #import "containers/Isgl3dBillboardNode.h"
 #import "containers/Isgl3dFollowNode.h"
 #import "containers/Isgl3dMeshNode.h"
@@ -55,7 +64,6 @@
 #import "containers/Isgl3dParticleNode.h"
 #import "containers/Isgl3dScene3D.h"
 #import "core/Isgl3dDirector.h"
-#import "core/Isgl3dEAGLView.h"
 #import "core/Isgl3dFpsRenderer.h"
 #import "core/Isgl3dGLContext.h"
 #import "core/Isgl3dGLDepthRenderTexture.h"
@@ -65,7 +73,6 @@
 #import "core/Isgl3dGLTextureFactoryState.h"
 #import "core/Isgl3dGLVBOData.h"
 #import "core/Isgl3dGLVBOFactory.h"
-#import "core/Isgl3dGLView.h"
 #import "core/Isgl3dPVRLoader.h"
 #import "core/Isgl3dScheduler.h"
 #import "core/Isgl3dUVMap.h"
@@ -89,7 +96,6 @@
 #import "events/Isgl3dTouchScreen.h"
 #import "events/Isgl3dTouchScreenResponder.h"
 #import "events/utils/Isgl3dSingleTouchFilter.h"
-#import "isgl3dTypes.h"
 #import "lights/Isgl3dLight.h"
 #import "lights/Isgl3dShadowCastingLight.h"
 #import "materials/Isgl3dAnimatedTextureMaterial.h"
@@ -97,10 +103,15 @@
 #import "materials/Isgl3dMaterial.h"
 #import "materials/Isgl3dShaderMaterial.h"
 #import "materials/Isgl3dTextureMaterial.h"
+#import "math/Isgl3dMathUtils.h"
 #import "math/Isgl3dGLU.h"
 #import "math/Isgl3dMatrix.h"
+#import "math/Isgl3dMatrix3.h"
+#import "math/Isgl3dMatrix4.h"
 #import "math/Isgl3dQuaternion.h"
 #import "math/Isgl3dVector.h"
+#import "math/Isgl3dVector3.h"
+#import "math/Isgl3dVector4.h"
 #import "math/neon/neon_matrix_impl.h"
 #import "math/vfp/common_macros.h"
 #import "math/vfp/matrix_impl.h"
@@ -155,4 +166,8 @@
 #import "utils/Isgl3dFloatArray.h"
 #import "utils/Isgl3dLog.h"
 #import "utils/Isgl3dUShortArray.h"
+#import "view/Isgl3dGLView.h"
+#import "view/Isgl3dEAGLView.h"
 #import "view/Isgl3dView.h"
+#import "isgl3dTypes.h"
+

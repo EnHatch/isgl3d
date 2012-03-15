@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -33,15 +33,15 @@
 @class Isgl3dGLRenderer;
 @class Isgl3dEvent3DHandler;
 @class Isgl3dFpsRenderer;
-@class Isgl3dCamera;
 @class Isgl3dGestureManager;
 @class Isgl3dNode;
 @class Isgl3dCustomShader;
+@protocol Isgl3dCamera;
 
 
 @protocol Isgl3dRenderPhaseCallback
-- (void) preRender;
-- (void) postRender;
+- (void)preRender;
+- (void)postRender;
 @end
 
 /**
@@ -74,10 +74,6 @@
 	id _displayLink;
 	NSTimer * _animationTimer;
 	
-	isgl3dOrientation _deviceOrientation;
-	isgl3dAutoRotationStrategy _autoRotationStrategy;
-	isgl3dAllowedAutoRotations _allowedAutoRotations;
-	
 	UIView<Isgl3dGLView> * _glView;
 	CGRect _windowRect;
 	CGRect _windowRectInPixels;
@@ -85,7 +81,7 @@
 	NSMutableArray * _views;
 	
 	// Active camera, used during rendering, represents camera used for each view
-	Isgl3dCamera * _activeCamera; 
+	id<Isgl3dCamera> _activeCamera; 
 	
 	Isgl3dGLRenderer * _renderer;
 	
@@ -98,7 +94,6 @@
 	Isgl3dEvent3DHandler * _event3DHandler;
 	BOOL _objectTouched;
 	
-	BOOL _displayFPS;
 	Isgl3dFpsRenderer * _fpsRenderer;
 	
 	BOOL _retinaDisplayEnabled;
@@ -142,44 +137,6 @@
 @property (nonatomic, assign) NSString * backgroundColorString;
 
 /**
- * The orientation of the device.
- * Possible values are:
- * <ul>
- * <li>Isgl3dOrientation0: portrait.</li>
- * <li>Isgl3dOrientation90Clockwise: landscape, device rotated clockwise.</li>
- * <li>Isgl3dOrientation90CounterClockwise: landscape, device rotated counter-clockwise.</li>
- * <li>Isgl3dOrientation180: portrait, upside down.</li>
- * </ul>
- * 
- */
-@property (nonatomic) isgl3dOrientation deviceOrientation;
-
-/**
- * Specifies how iSGL3D should handle auto rotation of the device.
- * Possible values are:
- * <ul>
- * <li>Isgl3dAutoRotationNone: no auto-rotation, keep user-specified value.</li>
- * <li>Isgl3dAutoRotationByIsgl3dDirector: auto-rotation enabled and handled internally.</li>
- * <li>Isgl3dAutoRotationByUIViewController: auto-rotation handled by UIViewController (over-rides all user
- * specified values).</li>
- * </ul>
- * 
- */
-@property (nonatomic) isgl3dAutoRotationStrategy autoRotationStrategy;
-
-/**
- * Specifies which orientation types are allowed when auto-rotation is enabled
- * Possible values are:
- * <ul>
- * <li>Isgl3dAllowedAutoRotationsAll: all orientations are allowed.</li>
- * <li>Isgl3dAllowedAutoRotationsPortraitOnly: only portrait orientations are allowed.</li>
- * <li>Isgl3dAllowedAutoRotationsLandscapeOnly: only landscape orientations are allowed.</li>
- * </ul>
- * 
- */
-@property (nonatomic) isgl3dAllowedAutoRotations allowedAutoRotations;
-
-/**
  * The Isgl3dEAGLView with OpenGL-specific contexts.
  */
 @property (nonatomic, retain) UIView<Isgl3dGLView> * openGLView;
@@ -193,11 +150,6 @@
  * Returns a BOOL value of whether the Isgl3dDirector (and thereby all Isgl3dViews) are paused.
  */
 @property (nonatomic, readonly) BOOL isPaused;
-
-/**
- * Indicates whether the FPS should be displayed.
- */
-@property (nonatomic) BOOL displayFPS;
 
 /**
  * Returns true if a rendered object has been touched. 
@@ -237,7 +189,7 @@
 /**
  * Returns the currently active camera during the render phase.
  */
-@property (nonatomic, readonly) Isgl3dCamera * activeCamera;
+@property (nonatomic, readonly) id<Isgl3dCamera> activeCamera;
 
 /**
  * The render phase callback allows for user operations to occur during the main laop.
@@ -270,65 +222,65 @@
  * Sets the animation interval in seconds.
  * @param animationInterval The animation interval in seconds. 
  */
-- (void) setAnimationInterval:(float)animationInterval;
+- (void)setAnimationInterval:(float)animationInterval;
 
 /**
  * Starts the animation timer.
  * This should be used with caution : the main point of entry to the animation is via "run".
  */
-- (void) startAnimation;
+- (void)startAnimation;
 
 /**
  * Stops the animation timer.
  * This should be used with caution : if this is called nothing will be rendered. To continue rendering use "pause".
  */
-- (void) stopAnimation;
+- (void)stopAnimation;
 
 /**
  * Starts the main loop and animation for the Isgl3dDirector. 
  * This is the main point of entry to run an iSGL3D application.
  */
-- (void) run;
+- (void)run;
 
 /**
  * Stops the animation and resets the Isgl3dDirector. 
  * This should only be used when the application ends. After being called the Isgl3dUIView and all Isgl3dViews need to 
  * be added again to the director.
  */
-- (void) end;
+- (void)end;
 
 /**
  * Pauses the animation.
  */
-- (void) pause;
+- (void)pause;
 
 /**
  * Resumes the animation after pause.
  */
-- (void) resume;
+- (void)resume;
 
 /**
  * Should be called when the application receives a memory warning.
  */
-- (void) onMemoryWarning;
+- (void)onMemoryWarning;
 
 /**
  * Should be called when a significant time elapses between two frames.
  */
-- (void) onSignificantTimeChange;
+- (void)onSignificantTimeChange;
 
 /**
  * Called internally when the UIView rendering layer is resized.
  * Note, this should never be called manually. This is called internally by the Isgl3dEAGLView.
  */
-- (void) onResizeFromLayer;
+- (void)onResizeFromLayer;
 
 /**
  * Sets the Isgl3dUIView.
  * From the Isgl3dEAGLView the Isgl3dDirector determines the size of the window and creates the renderers.
  * @param glView The Isgl3dEAGLView containing the OpenGL buffers. 
  */
-- (void) setOpenGLView:(UIView<Isgl3dGLView> *)glView;
+- (void)setOpenGLView:(UIView<Isgl3dGLView> *)glView;
 
 /**
  * Returns the Isgl3dEAGLView currently in use.
@@ -341,13 +293,13 @@
  * to the Isgl3dDirector.
  * @param view The Isgl3dView to be added and rendered at each frame. 
  */
-- (void) addView:(Isgl3dView *)view;
+- (void)addView:(Isgl3dView *)view;
 
 /**
  * Removes and Isgl3dView from the Isgl3dDirector.
  * @param view The Isgl3dView to be removed. 
  */
-- (void) removeView:(Isgl3dView *)view;
+- (void)removeView:(Isgl3dView *)view;
 
 /**
  * Returns the pixel colour as a hex string for a specific x and y location on the screen.
@@ -367,7 +319,7 @@
  * Enables or disables the retina display if the device allows it.
  * @param enabled True if the retina display should be enabled.
  */
-- (void) enableRetinaDisplay:(BOOL)enabled;
+- (void)enableRetinaDisplay:(BOOL)enabled;
 
 /**
  * Add a gesture recognizer for the node. The same gesture recognizer may be added for different nodes.

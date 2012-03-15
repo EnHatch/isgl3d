@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,19 +27,20 @@
 #import "Isgl3dPrimitiveFactory.h"
 #import "Isgl3dPlane.h"
 #import "Isgl3dEventType.h"
+#import "Isgl3dDirector.h"
 
 @implementation Isgl3dGLUIButton
 
 
-+ (id) buttonWithMaterial:(Isgl3dMaterial *)material width:(unsigned int)width height:(unsigned int)height {
++ (id)buttonWithMaterial:(Isgl3dMaterial *)material width:(unsigned int)width height:(unsigned int)height {
 	return [[[self alloc] initWithMaterial:material width:width height:height] autorelease];
 }
 
-+ (id) buttonWithMaterial:(Isgl3dMaterial *)material {
++ (id)buttonWithMaterial:(Isgl3dMaterial *)material {
 	return [[[self alloc] initWithMaterial:material] autorelease];
 }
 
-- (id) initWithMaterial:(Isgl3dMaterial *)material {
+- (id)initWithMaterial:(Isgl3dMaterial *)material {
 	
 	if ((self = [super initWithMesh:[[Isgl3dPrimitiveFactory sharedInstance] UIButtonMesh] andMaterial:material])) {
 		[self setWidth:[Isgl3dPrimitiveFactory sharedInstance].UIButtonWidth andHeight:[Isgl3dPrimitiveFactory sharedInstance].UIButtonHeight];
@@ -49,9 +50,14 @@
 	return self;	
 }
 
-- (id) initWithMaterial:(Isgl3dMaterial *)material width:(unsigned int)width height:(unsigned int)height {
+- (id)initWithMaterial:(Isgl3dMaterial *)material width:(unsigned int)width height:(unsigned int)height {
 	
-	if ((self = [super initWithMesh:[Isgl3dPlane meshWithGeometry:width height:height nx:2 ny:2] andMaterial:material])) {
+    float contentScaleFactor = [Isgl3dDirector sharedInstance].contentScaleFactor;
+	if ((self = [super initWithMesh:[Isgl3dPlane meshWithGeometry:width * contentScaleFactor
+	                                                       height:height * contentScaleFactor
+		                                                       nx:2
+		                                                       ny:2]
+	                    andMaterial:material])) {
 		[self setWidth:width andHeight:height];
 		self.interactive = YES;
 	}
@@ -60,7 +66,7 @@
 }
 
 
-- (void) dealloc {
+- (void)dealloc {
 	
 	[super dealloc];
 }
@@ -74,7 +80,7 @@
 	
 }
 
-- (void) removeEventListener:(Isgl3dEvent3DListener *)listener {
+- (void)removeEventListener:(Isgl3dEvent3DListener *)listener {
 	return [self removeEvent3DListener:listener];
 }
 

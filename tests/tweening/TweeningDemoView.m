@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -27,12 +27,31 @@
 
 @implementation TweeningDemoView
 
-- (id) init {
++ (id<Isgl3dCamera>)createDefaultSceneCameraForViewport:(CGRect)viewport {
+    Isgl3dClassDebugLog(Isgl3dLogLevelInfo, @"creating default camera with perspective projection. Viewport size = %@", NSStringFromCGSize(viewport.size));
+    
+    CGSize viewSize = viewport.size;
+    float fovyRadians = Isgl3dMathDegreesToRadians(45.0f);
+    Isgl3dPerspectiveProjection *perspectiveLens = [[Isgl3dPerspectiveProjection alloc] initFromViewSize:viewSize fovyRadians:fovyRadians nearZ:1.0f farZ:10000.0f];
+    
+    Isgl3dVector3 cameraPosition = Isgl3dVector3Make(0.0f, 0.0f, 10.0f);
+    Isgl3dVector3 cameraLookAt = Isgl3dVector3Make(0.0f, 0.0f, 0.0f);
+    Isgl3dVector3 cameraLookUp = Isgl3dVector3Make(0.0f, 1.0f, 0.0f);
+    Isgl3dLookAtCamera *standardCamera = [[Isgl3dLookAtCamera alloc] initWithLens:perspectiveLens
+                                                                             eyeX:cameraPosition.x eyeY:cameraPosition.y eyeZ:cameraPosition.z
+                                                                          centerX:cameraLookAt.x centerY:cameraLookAt.y centerZ:cameraLookAt.z
+                                                                              upX:cameraLookUp.x upY:cameraLookUp.y upZ:cameraLookUp.z];
+    [perspectiveLens release];
+    return [standardCamera autorelease];
+}
+
+- (id)init {
 	
 	if ((self = [super init])) {
 		
-		self.camera.position = iv3(0, 2, 7);
-		[self.camera lookAt:0 y:0 z:-2];
+        Isgl3dLookAtCamera *standardLookAtCamera = (Isgl3dLookAtCamera *)self.defaultCamera;
+        standardLookAtCamera.eyePosition = Isgl3dVector3Make(0.0f, 2.0f, 7.0f);
+        standardLookAtCamera.centerPosition = Isgl3dVector3Make(0.0f, 0.0f, -2.0f);
 
 		// Enable zsorting
 		self.zSortingEnabled = YES;
@@ -44,10 +63,10 @@
 		_container = [self.scene createNode];
 		
 		Isgl3dNode * container1 = [_container createNode];
-		container1.position = iv3(-2, 0, 0);
+		container1.position = Isgl3dVector3Make(-2.0f, 0.0f, 0.0f);
 	
 		Isgl3dNode * container2 = [_container createNode];
-		container2.position = iv3(2, 0, 0);
+		container2.position = Isgl3dVector3Make(2.0f, 0.0f, 0.0f);
 		
 		// Create a texture material
 		Isgl3dTextureMaterial * textureMaterial1 = [Isgl3dTextureMaterial materialWithTextureFile:@"checker.png" shininess:0.9 precision:Isgl3dTexturePrecisionMedium repeatX:NO repeatY:NO];
@@ -76,15 +95,15 @@
 		
 		// Create the lights
 		Isgl3dLight * light1 = [Isgl3dLight lightWithHexColor:@"111111" diffuseColor:@"FFFFFF" specularColor:@"FFFFFF" attenuation:0.005];
-		light1.position = iv3(0, 2, 5);
+		light1.position = Isgl3dVector3Make(0, 2, 5);
 		[self.scene addChild:light1];
 		
 		Isgl3dLight * light2 = [Isgl3dLight lightWithHexColor:@"110000" diffuseColor:@"FF0000" specularColor:@"FFFFFF" attenuation:0.001];
-		light2.position = iv3(-2, 0, 0);
+		light2.position = Isgl3dVector3Make(-2, 0, 0);
 		[container1 addChild:light2];
 		
 		Isgl3dLight * light3 = [Isgl3dLight lightWithHexColor:@"000011" diffuseColor:@"0000FF" specularColor:@"FFFFFF" attenuation:0.001];
-		light3.position = iv3(2, 0, 0);
+		light3.position = Isgl3dVector3Make(2, 0, 0);
 		[container2 addChild:light3];
 		
 		// Set the scene ambient color
@@ -157,11 +176,10 @@
 @implementation AppDelegate
 
 - (void) createViews {
-	// Set the device orientation
-	[Isgl3dDirector sharedInstance].deviceOrientation = Isgl3dOrientationLandscapeLeft;
-
 	// Create view and add to Isgl3dDirector
-	Isgl3dView * view = [TweeningDemoView view];
+	Isgl3dView *view = [TweeningDemoView view];
+    view.displayFPS = YES;
+    
 	[[Isgl3dDirector sharedInstance] addView:view];
 }
 

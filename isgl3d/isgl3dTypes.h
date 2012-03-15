@@ -1,7 +1,7 @@
 /*
  * iSGL3D: http://isgl3d.com
  *
- * Copyright (c) 2010-2011 Stuart Caunt
+ * Copyright (c) 2010-2012 Stuart Caunt
  *
  * Permission is hereby granted, free of charge, to any person obtaining a copy
  * of this software and associated documentation files (the "Software"), to deal
@@ -23,38 +23,6 @@
  *
  */
 
-/**
- * Device and viewport orientations
- */
-typedef enum {
-	Isgl3dOrientation0 = 0,	
-    Isgl3dOrientation90Clockwise,
-    Isgl3dOrientation180,
-    Isgl3dOrientation90CounterClockwise,
-    
-    Isgl3dOrientationPortrait = Isgl3dOrientation0,
-    Isgl3dOrientationLandscapeRight = Isgl3dOrientation90Clockwise,
-    Isgl3dOrientationPortraitUpsideDown = Isgl3dOrientation180,
-    Isgl3dOrientationLandscapeLeft = Isgl3dOrientation90CounterClockwise
-} isgl3dOrientation;
-
-/**
- * Auto-rotation strategy
- */
-typedef enum {
-	Isgl3dAutoRotationNone = 0,
-	Isgl3dAutoRotationByIsgl3dDirector,
-	Isgl3dAutoRotationByUIViewController
-} isgl3dAutoRotationStrategy;
-
-/**
- * Allowed auto rotations
- */
-typedef enum {
-	Isgl3dAllowedAutoRotationsAll = 0,
-	Isgl3dAllowedAutoRotationsPortraitOnly,
-	Isgl3dAllowedAutoRotationsLandscapeOnly
-} isgl3dAllowedAutoRotations;
 
 /**
  * Shadow rendering methods
